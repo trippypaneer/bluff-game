@@ -412,7 +412,18 @@
       socket.on('actionError', ({ message }) => { showPlayError(message); showToast(message, 'error'); });
     }
 
-    function renderAll() { renderOpponents(); renderPile(); renderTurnBanner(); renderHand(); renderControls(); }
+    function renderAll() { 
+  if (state.phase === 'playing') {
+    dom.lobbyOverlay.classList.add('hidden');
+  } else {
+    dom.lobbyOverlay.classList.remove('hidden');
+  }
+  renderOpponents(); 
+  renderPile(); 
+  renderTurnBanner(); 
+  renderHand(); 
+  renderControls(); 
+}
 
     function renderOpponents() {
       dom.opponentsRow.innerHTML = '';
