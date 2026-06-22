@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Online multiplayer Bluff card game — claim your cards, catch the liars." />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bluff" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <title>Bluff — Multiplayer Card Game</title>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STYLES
+       Design language: deep casino felt, aged gold accents, sharp card whites.
+       All colours live in CSS custom properties so theming is one-place.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────────────── */
+    :root {
+      /* Palette */
+      --bg-void:       #0a0a0a;
+      --bg-surface:    #141414;
+      --bg-elevated:   #1e1e1e;
+      --bg-card:       #f5efd8;    /* card face */
+      --bg-card-back:  #1c3a6e;    /* card back felt */
+
+      --accent-gold:   #c9a84c;
+      --accent-gold-l: #e8c96e;
+      --accent-red:    #b52a2a;
+      --accent-green:  #2ecc71;
+
+      --text-primary:  #e8e8e8;
+      --text-muted:    #7a7a7a;
+      --text-dim:      #4a4a4a;
+      --text-inverse:  #0f0f0f;
+
+      --border-subtle: rgba(255,255,255,0.06);
+      --border-gold:   rgba(201,168,76,0.35);
+      --border-focus:  rgba(201,168,76,0.70);
+
+      --shadow-card:   0 4px 20px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.4);
+      --shadow-pile:   0 8px 32px rgba(0,0,0,0.8);
+
+      /* Typography */
+      --font-display: 'Georgia', 'Times New Roman', serif;
+      --font-ui:       system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+      /* Sizing */
+      --header-h:     56px;
+      --card-w:       64px;
+      --card-h:       90px;
+      --card-radius:  8px;
+      --radius-sm:    6px;
+      --radius-md:    10px;
+      --radius-lg:    16px;
+
+      /* Transitions */
+      --t-fast:  0.14s ease;
+      --t-mid:   0.24s ease;
+      --t-slow:  0.4s cubic-bezier(0.34,1.56,0.64,1);  /* springy */
+    }
+
+    /* ── Reset ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      /* Safe area insets for iPhone notch / home indicator */
+      padding-top:    env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left:   env(safe-area-inset-left);
+      padding-right:  env(safe-area-inset-right);
+    }
+
+    /* ── Utility classes ────────────────────────────────────────────────── */
+    .visually-hidden {
+      position: absolute; width: 1px; height: 1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       HEADER
+       ══════════════════════════════════════════════════════════════════════ */
+    #header {
+      flex-shrink: 0;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+      z-index: 10;
+    }
+
+    #header-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      letter-spacing: 0.06em;
+      user-select: none;
+    }
+
+    /* Connection status pill */
+    #connection-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      transition: color var(--t-mid);
+    }
+
+    #connection-dot {
+      width:  9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+      transition: background var(--t-mid), box-shadow var(--t-mid);
+    }
+
+    /* Status states — toggled via JS by adding a class to <body> */
+    body.connected    #connection-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    body.connected    #connection-status { color: var(--accent-green); }
+    body.disconnected #connection-dot { background: var(--accent-red);  box-shadow: 0 0 6px var(--accent-red);   }
+    body.disconnected #connection-status { color: var(--accent-red);  }
+
+    /* Current player badge */
+    #player-badge {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       MAIN LAYOUT — scrollable viewport below the fixed header
+       ══════════════════════════════════════════════════════════════════════ */
+    #app {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      /* Momentum scrolling on iOS */
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       GAME TABLE
+       ══════════════════════════════════════════════════════════════════════ */
+    #game-table {
+      background: radial-gradient(ellipse at 50% 40%, #1a3228 0%, #0d1e18 60%, #080f0c 100%);
+      padding: 20px 16px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      border-bottom: 1px solid var(--border-subtle);
+      /* Subtle felt texture via repeating gradient */
+      background-image:
+        repeating-linear-gradient(0deg,   rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 6px),
+        repeating-linear-gradient(90deg,  rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 6px),
+        radial-gradient(ellipse at 50% 40%, #1a3228 0%, #0d1e18 60%, #080f0c 100%);
+    }
+
+    /* Opponents row */
+    #opponents-row {
+      width: 100%;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      min-height: 44px;
+    }
+
+    .opponent-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      transition: border-color var(--t-fast), color var(--t-fast);
+    }
+
+    /* Highlight the active player's chip */
+    .opponent-chip.active-turn {
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+
+    .opponent-chip .card-count {
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      padding: 1px 7px;
+      font-size: 0.70rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Central pile container */
+    #pile-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    /* Stacked deck visual — CSS-only multiple card stack */
+    #pile-visual {
+      position: relative;
+      width:  var(--card-w);
+      height: var(--card-h);
+      margin-bottom: 4px;
+    }
+
+    /* Each "ghost card" in the stack is a pseudo-positioned div */
+    .pile-card {
+      position: absolute;
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: var(--card-radius);
+      background: linear-gradient(135deg, #1c3a6e 0%, #0f2550 100%);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: var(--shadow-card);
+    }
+
+    .pile-card:nth-child(1) { transform: rotate(-4deg)  translate(-3px, -3px); }
+    .pile-card:nth-child(2) { transform: rotate( 2deg)  translate( 2px, -1px); }
+    .pile-card:nth-child(3) { transform: rotate(-1deg)  translate(-1px,  1px); z-index: 3; }
+
+    /* Diamond pattern on card back */
+    .pile-card::after {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-radius: 4px;
+      background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.03) 0px,
+        rgba(255,255,255,0.03) 3px,
+        transparent 3px,
+        transparent 9px
+      );
+    }
+
+    /* "Empty pile" state */
+    #pile-visual.empty .pile-card {
+      opacity: 0.25;
+    }
+
+    /* Pile info row */
+    #pile-info {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .pile-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .pile-stat-value {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      line-height: 1;
+    }
+
+    .pile-stat-label {
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+    }
+
+    .pile-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--border-subtle);
+    }
+
+    /* Declared rank badge */
+    #declared-rank-badge {
+      padding: 4px 14px;
+      border-radius: 24px;
+      background: rgba(201,168,76,0.12);
+      border: 1px solid var(--border-gold);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent-gold);
+      letter-spacing: 0.04em;
+      transition: opacity var(--t-mid);
+    }
+
+    #declared-rank-badge.hidden { opacity: 0; pointer-events: none; }
+
+    /* Turn indicator banner */
+    #turn-banner {
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.80rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      background: rgba(0,0,0,0.40);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      transition: background var(--t-mid), color var(--t-mid), border-color var(--t-mid);
+    }
+
+    #turn-banner.your-turn {
+      background: rgba(201,168,76,0.12);
+      border-color: var(--border-gold);
+      color: var(--accent-gold-l);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       PLAYER HAND
+       ══════════════════════════════════════════════════════════════════════ */
+    #hand-section {
+      background: var(--bg-surface);
+      padding: 14px 0 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    #hand-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      margin-bottom: 10px;
+    }
+
+    .section-label {
+      font-size: 0.70rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    #hand-card-count {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      background: var(--bg-elevated);
+      padding: 2px 9px;
+      border-radius: 12px;
+    }
+
+    /* Horizontally scrollable hand area */
+    #hand-container {
+      display: flex;
+      gap: 8px;
+      padding: 4px 16px 12px;
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;            /* Firefox */
+      scroll-padding-left: 16px;
+    }
+
+    #hand-container::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+    /* Selection helper message */
+    #selection-hint {
+      padding: 0 16px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      min-height: 16px;
+    }
+
+    /* ── Playing card ───────────────────────────────────────────────────── */
+    .card {
+      flex-shrink: 0;
+      width:   var(--card-w);
+      height:  var(--card-h);
+      border-radius: var(--card-radius);
+      background: var(--bg-card);
+      border: 1.5px solid rgba(0,0,0,0.15);
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      transition:
+        transform  var(--t-slow),
+        box-shadow var(--t-mid),
+        border-color var(--t-fast);
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    /* Lift + gold border when selected */
+    .card.selected {
+      transform: translateY(-12px) scale(1.04);
+      border-color: var(--accent-gold);
+      box-shadow: var(--shadow-card), 0 0 0 2px var(--accent-gold), 0 12px 24px rgba(0,0,0,0.6);
+    }
+
+    /* Reduced motion: disable the springy lift */
+    @media (prefers-reduced-motion: reduce) {
+      .card, .card.selected { transition: border-color var(--t-fast); }
+      .card.selected { transform: none; }
+    }
+
+    .card:focus-visible {
+      outline: 2px solid var(--accent-gold);
+      outline-offset: 2px;
+    }
+
+    /* Rank + suit at corners */
+    .card-corner {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.1;
+    }
+
+    .card-corner.top-left  { top: 5px;  left: 6px;  }
+    .card-corner.bot-right { bottom: 5px; right: 6px; transform: rotate(180deg); }
+
+    .card-rank {
+      font-family: var(--font-display);
+      font-size: 1.0rem;
+      font-weight: 700;
+      color: var(--text-inverse);
+    }
+
+    .card-suit {
+      font-size: 0.78rem;
+      line-height: 1;
+    }
+
+    /* Suit colours */
+    .card[data-suit="♥"] .card-rank,
+    .card[data-suit="♥"] .card-suit,
+    .card[data-suit="♦"] .card-rank,
+    .card[data-suit="♦"] .card-suit { color: var(--accent-red); }
+
+    .card[data-suit="♠"] .card-rank,
+    .card[data-suit="♠"] .card-suit,
+    .card[data-suit="♣"] .card-rank,
+    .card[data-suit="♣"] .card-suit { color: #1a1a1a; }
+
+    /* Centre suit pip */
+    .card-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    /* Checkmark overlay when selected */
+    .card::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--accent-gold);
+      font-weight: 700;
+      background: rgba(201,168,76,0.12);
+      border-radius: calc(var(--card-radius) - 1px);
+      opacity: 0;
+      transition: opacity var(--t-fast);
+    }
+
+    .card.selected::after { opacity: 1; }
+
+    /* ── Empty hand placeholder ── */
+    #hand-empty {
+      display: none;
+      padding: 20px 16px;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    #hand-container:empty ~ #hand-empty { display: block; }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       CONTROL PANEL
+       ══════════════════════════════════════════════════════════════════════ */
+    #control-panel {
+      background: var(--bg-surface);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Declare row: rank selector + play button side by side */
+    #declare-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    /* Rank select dropdown */
+    #rank-select {
+      flex: 1;
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      font-family: var(--font-ui);
+      padding: 0 36px 0 12px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7a7a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    #rank-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+    }
+
+    #rank-select option {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    /* Primary action: play */
+    #btn-play {
+      flex-shrink: 0;
+      padding: 0 20px;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, #a07830 100%);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-inverse);
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity var(--t-fast), transform var(--t-fast);
+      min-height: 44px;    /* touch target */
+    }
+
+    #btn-play:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #btn-play:not(:disabled):active { transform: scale(0.97); }
+
+    /* Secondary actions row */
+    #secondary-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      min-height: 44px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--t-fast), border-color var(--t-fast), opacity var(--t-fast), transform var(--t-fast);
+      letter-spacing: 0.02em;
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary:not(:disabled):active { transform: scale(0.97); }
+
+    #btn-bluff {
+      border-color: rgba(181,42,42,0.40);
+      color: #e05555;
+    }
+
+    #btn-bluff:not(:disabled):hover {
+      background: rgba(181,42,42,0.14);
+      border-color: rgba(181,42,42,0.70);
+    }
+
+    #btn-skip:not(:disabled):hover {
+      background: var(--bg-surface);
+      border-color: rgba(255,255,255,0.14);
+    }
+
+    /* Validation error message */
+    #play-error {
+      font-size: 0.74rem;
+      color: var(--accent-red);
+      min-height: 16px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       GAME LOG / CHAT
+       ══════════════════════════════════════════════════════════════════════ */
+    #log-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      min-height: 160px;
+    }
+
+    #log-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    #log-clear {
+      font-size: 0.70rem;
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: color var(--t-fast), background var(--t-fast);
+    }
+    #log-clear:hover { color: var(--text-muted); background: var(--bg-elevated); }
+
+    #game-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-subtle) transparent;
+    }
+
+    #game-log::-webkit-scrollbar       { width: 4px; }
+    #game-log::-webkit-scrollbar-track { background: transparent; }
+    #game-log::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
+
+    /* ── Log entry types ── */
+    .log-entry {
+      font-size: 0.80rem;
+      line-height: 1.4;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      border-left: 2px solid transparent;
+      animation: slideIn 0.22s ease-out both;
+      word-break: break-word;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0);    }
+    }
+
+    .log-entry.log-system  { color: var(--text-dim); font-style: italic; }
+    .log-entry.log-action  { color: var(--text-muted); border-left-color: var(--border-subtle); background: rgba(255,255,255,0.02); }
+    .log-entry.log-bluff   { color: #e05555; border-left-color: var(--accent-red);  background: rgba(181,42,42,0.08); }
+    .log-entry.log-truth   { color: #4cba6f; border-left-color: var(--accent-green); background: rgba(46,204,113,0.08); }
+    .log-entry.log-turn    { color: var(--accent-gold); border-left-color: var(--border-gold); background: rgba(201,168,76,0.06); font-weight: 600; }
+    .log-entry.log-win     { color: var(--accent-gold-l); border-left-color: var(--accent-gold); background: rgba(201,168,76,0.12); font-weight: 700; font-size: 0.85rem; }
+
+    .log-timestamp {
+      font-size: 0.66rem;
+      color: var(--text-dim);
+      margin-right: 5px;
+    }
+
+    /* ── Lobby / waiting overlay ── */
+    #lobby-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+      padding: 24px;
+    }
+
+    #lobby-overlay.hidden { display: none; }
+
+    #lobby-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.8);
+    }
+
+    #lobby-title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.06em;
+    }
+
+    #lobby-subtitle {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    #lobby-name-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      font-family: var(--font-ui);
+      text-align: center;
+      outline: none;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    }
+
+    #lobby-name-input::placeholder { color: var(--text-dim); }
+    #lobby-name-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+    }
+
+    #lobby-join-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, #a07830 100%);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-inverse);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: opacity var(--t-fast), transform var(--t-fast);
+    }
+    #lobby-join-btn:hover  { opacity: 0.88; }
+    #lobby-join-btn:active { transform: scale(0.98); }
+
+    #lobby-status {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* Pulsing "waiting" dots */
+    .dot-pulse {
+      display: inline-flex;
+      gap: 4px;
+      vertical-align: middle;
+    }
+    .dot-pulse span {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      animation: dotBounce 1.2s ease-in-out infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotBounce {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.7); }
+      40%            { opacity: 1;   transform: scale(1);   }
+    }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 9px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-pile);
+      z-index: 200;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease;
+      opacity: 0;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    #toast.toast-error  { border-color: rgba(181,42,42,0.5); color: #e05555; }
+    #toast.toast-success{ border-color: rgba(46,204,113,0.5); color: #4cba6f; }
+    #toast.toast-gold   { border-color: var(--border-gold); color: var(--accent-gold); }
+
+    /* ── Responsive tweaks for wider screens ── */
+    @media (min-width: 520px) {
+      :root { --card-w: 72px; --card-h: 100px; }
+      #game-table { padding: 24px 24px 28px; }
+      #control-panel, #log-header, #game-log { padding-left: 24px; padding-right: 24px; }
+      #hand-container { padding-left: 24px; padding-right: 24px; }
+    }
+  </style>
+</head>
+<body class="disconnected">
+
+  <!-- ═══════════════════════════════════════════
+       LOBBY OVERLAY (shown until game starts)
+  ════════════════════════════════════════════ -->
+  <div id="lobby-overlay" role="dialog" aria-modal="true" aria-labelledby="lobby-title">
+    <div id="lobby-card">
+      <h1 id="lobby-title">BLUFF</h1>
+      <p id="lobby-subtitle">
+        Multiplayer card game — deal your hand, declare a rank,<br>
+        and hope no one calls your bluff.
+      </p>
+      <input
+        id="lobby-name-input"
+        type="text"
+        maxlength="20"
+        placeholder="Your display name…"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="words"
+        spellcheck="false"
+      />
+      <button id="lobby-join-btn" type="button">Join Game</button>
+      <p id="lobby-status">Connecting to server…</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════════ -->
+  <header id="header" role="banner">
+    <h1 id="header-title">♠ BLUFF</h1>
+    <span id="player-badge" aria-label="Your name"></span>
+    <div id="connection-status" role="status" aria-live="polite">
+      <span id="connection-dot" aria-hidden="true"></span>
+      <span id="connection-label">Offline</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN APP
+  ════════════════════════════════════════════ -->
+  <main id="app" role="main">
+
+    <!-- ── Game table ── -->
+    <section id="game-table" aria-label="Game table">
+
+      <!-- Opponents row -->
+      <div id="opponents-row" role="list" aria-label="Other players">
+        <!-- Opponent chips injected by JS -->
+      </div>
+
+      <!-- Central pile -->
+      <div id="pile-area">
+        <div id="pile-visual" aria-hidden="true">
+          <div class="pile-card"></div>
+          <div class="pile-card"></div>
+          <div class="pile-card"></div>
+        </div>
+
+        <div id="pile-info">
+          <div class="pile-stat">
+            <span class="pile-stat-value" id="pile-count">0</span>
+            <span class="pile-stat-label">Cards in pile</span>
+          </div>
+          <div class="pile-divider" aria-hidden="true"></div>
+          <div class="pile-stat">
+            <span class="pile-stat-value" id="last-player-name">—</span>
+            <span class="pile-stat-label">Last play by</span>
+          </div>
+        </div>
+
+        <div id="declared-rank-badge" class="hidden" aria-live="polite">
+          Rank: <span id="declared-rank-value">—</span>
+        </div>
+      </div>
+
+      <!-- Turn indicator -->
+      <div id="turn-banner" role="status" aria-live="polite">
+        Waiting for game to start…
+      </div>
+    </section>
+
+    <!-- ── Player hand ── -->
+    <section id="hand-section" aria-label="Your hand">
+      <div id="hand-section-header">
+        <span class="section-label">Your Hand</span>
+        <span id="hand-card-count" aria-live="polite">0 cards</span>
+      </div>
+
+      <div
+        id="hand-container"
+        role="list"
+        aria-label="Cards in your hand — tap to select"
+      >
+        <!-- Card elements injected by JS -->
+      </div>
+
+      <p id="hand-empty" aria-live="polite">
+        Your hand is empty. You've played all your cards!
+      </p>
+
+      <p id="selection-hint" aria-live="polite"></p>
+    </section>
+
+    <!-- ── Control panel ── -->
+    <section id="control-panel" aria-label="Game controls">
+
+      <!-- Declare rank + play -->
+      <div id="declare-row">
+        <label for="rank-select" class="visually-hidden">Declare rank</label>
+        <select id="rank-select" aria-label="Rank to declare">
+          <option value="">— Declare rank —</option>
+          <option value="A">Ace (A)</option>
+          <option value="2">Two  (2)</option>
+          <option value="3">Three (3)</option>
+          <option value="4">Four (4)</option>
+          <option value="5">Five (5)</option>
+          <option value="6">Six (6)</option>
+          <option value="7">Seven (7)</option>
+          <option value="8">Eight (8)</option>
+          <option value="9">Nine (9)</option>
+          <option value="10">Ten (10)</option>
+          <option value="J">Jack (J)</option>
+          <option value="Q">Queen (Q)</option>
+          <option value="K">King (K)</option>
+        </select>
+
+        <button id="btn-play" type="button" disabled aria-describedby="play-error">
+          Play Cards
+        </button>
+      </div>
+
+      <!-- Validation message -->
+      <p id="play-error" role="alert" aria-live="assertive"></p>
+
+      <!-- Secondary actions -->
+      <div id="secondary-row">
+        <button id="btn-skip"  class="btn-secondary" type="button" disabled>
+          Skip Turn
+        </button>
+        <button id="btn-bluff" class="btn-secondary" type="button" disabled>
+          🎭 Call Bluff!
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ── Game log ── -->
+    <section id="log-section" aria-label="Game log">
+      <div id="log-header">
+        <span class="section-label">Game Log</span>
+        <button id="log-clear" type="button" aria-label="Clear log">Clear</button>
+      </div>
+      <div id="game-log" role="log" aria-live="polite" aria-atomic="false">
+        <!-- Log entries injected by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast notification (aria-live so screen readers pick it up) -->
+  <div id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SOCKET.IO CLIENT LIBRARY
+       Replace the src with your server's Socket.io CDN path if self-hosting,
+       or leave as-is — the client script tag is intentionally kept separate
+       from the server URL so both can be swapped independently.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+
+  <script>
+    /* ════════════════════════════════════════════════════════════════════════
+       BLUFF MULTIPLAYER — CLIENT APPLICATION
+       ────────────────────────────────────────────────────────────────────────
+       Architecture
+       ─────────────
+       1. CONFIG          — server URL and tunable constants
+       2. STATE           — single source of truth for all runtime data
+       3. DOM CACHE       — all element references gathered once
+       4. SERVICE WORKER  — registration
+       5. SOCKET          — initialisation & event handlers
+       6. UI UPDATERS     — pure functions that write to the DOM from state
+       7. USER ACTIONS    — event handlers for buttons / card clicks
+       8. UTILITIES       — toast, log, helpers
+       9. INIT            — bootstrap
+       ════════════════════════════════════════════════════════════════════════ */
+
+    /* ── 1. CONFIG ───────────────────────────────────────────────────────── */
+
+    /**
+     * Replace this with your actual backend URL before deploying.
+     * Examples:
+     *   'http://localhost:3000'
+     *   'https://bluff-server.example.com'
+     */
+    const SERVER_URL = 'https://bluff-backend-abje.onrender.com';
+
+    /** All card ranks in standard order */
+    const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+    /** All suits as Unicode glyphs */
+    const SUITS = ['♠','♥','♦','♣'];
+
+    /** Duration (ms) to keep toast messages visible */
+    const TOAST_DURATION_MS = 3000;
+
+    /* ── 2. STATE ────────────────────────────────────────────────────────── */
+
+    const state = {
+      /* My identity (assigned by server after joinGame) */
+      myId:       null,
+      myName:     null,
+
+      /* Current game snapshot from the server */
+      players:           [],   // Array<{ id, name, cardCount, isConnected }>
+      myHand:            [],   // Array<{ rank, suit }> — only sent to this client
+      pileCount:         0,
+      lastDeclaredRank:  null, // string | null
+      lastPlayerId:      null, // id of the player who made the last play
+      currentTurnId:     null, // id of player whose turn it is
+      phase:             'lobby', // 'lobby' | 'playing' | 'ended'
+
+      /* Local selection tracked by client only */
+      selectedCardIndices: new Set(),  // Set<number> — indices into myHand[]
+    };
+
+    /* ── 3. DOM CACHE ────────────────────────────────────────────────────── */
+
+    const dom = {
+      body:              document.body,
+      lobbyOverlay:      document.getElementById('lobby-overlay'),
+      lobbyNameInput:    document.getElementById('lobby-name-input'),
+      lobbyJoinBtn:      document.getElementById('lobby-join-btn'),
+      lobbyStatus:       document.getElementById('lobby-status'),
+
+      connectionLabel:   document.getElementById('connection-label'),
+      playerBadge:       document.getElementById('player-badge'),
+
+      opponentsRow:      document.getElementById('opponents-row'),
+
+      pileVisual:        document.getElementById('pile-visual'),
+      pileCount:         document.getElementById('pile-count'),
+      lastPlayerName:    document.getElementById('last-player-name'),
+      declaredRankBadge: document.getElementById('declared-rank-badge'),
+      declaredRankValue: document.getElementById('declared-rank-value'),
+      turnBanner:        document.getElementById('turn-banner'),
+
+      handContainer:     document.getElementById('hand-container'),
+      handCardCount:     document.getElementById('hand-card-count'),
+      selectionHint:     document.getElementById('selection-hint'),
+
+      rankSelect:        document.getElementById('rank-select'),
+      btnPlay:           document.getElementById('btn-play'),
+      btnSkip:           document.getElementById('btn-skip'),
+      btnBluff:          document.getElementById('btn-bluff'),
+      playError:         document.getElementById('play-error'),
+
+      gameLog:           document.getElementById('game-log'),
+      logClear:          document.getElementById('log-clear'),
+
+      toast:             document.getElementById('toast'),
+    };
+
+    /* ── 4. SERVICE WORKER REGISTRATION ─────────────────────────────────── */
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then((reg) => {
+            console.log('[App] Service Worker registered, scope:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('[App] Service Worker registration failed:', err);
+          });
+      });
+    }
+
+    /* ── 5. SOCKET INITIALISATION & EVENT HANDLERS ───────────────────────── */
+
+    /**
+     * The socket is intentionally not connected on page-load.
+     * We wait until the user clicks "Join Game" so we can pass the player's
+     * name as auth metadata on the initial handshake.
+     *
+     * @type {import("socket.io-client").Socket | null}
+     */
+    let socket = null;
+
+    /**
+     * Connect to the game server and wire up all socket event listeners.
+     * Called once when the player submits the lobby form.
+     *
+     * @param {string} playerName
+     */
+    function connectSocket(playerName) {
+      socket = io(SERVER_URL, {
+        auth:          { name: playerName },  // passed to server's io.use() middleware
+        reconnection:  true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay:    1000,
+        reconnectionDelayMax: 8000,
+        timeout:       10000,
+        // Transports: prefer WebSocket, fall back to HTTP long-polling.
+        // The Service Worker is configured to BYPASS /socket.io/* paths so
+        // neither transport is ever intercepted.
+        transports: ['websocket', 'polling'],
+      });
+
+      /* ── Connection lifecycle ── */
+
+      socket.on('connect', () => {
+        dom.body.classList.replace('disconnected', 'connected');
+        dom.connectionLabel.textContent = 'Live';
+        dom.lobbyStatus.textContent     = 'Connected! Waiting for the host to start…';
+        addLog('Connected to server.', 'system');
+      });
+
+      socket.on('disconnect', (reason) => {
+        dom.body.classList.replace('connected', 'disconnected');
+        dom.connectionLabel.textContent = 'Offline';
+        addLog(`Disconnected: ${reason}. Reconnecting…`, 'system');
+        setControlsEnabled(false);
+      });
+
+      socket.on('connect_error', (err) => {
+        dom.lobbyStatus.textContent = `Connection failed: ${err.message}`;
+        addLog(`Connection error: ${err.message}`, 'system');
+      });
+
+      socket.on('reconnect', (attempt) => {
+        addLog(`Reconnected after ${attempt} attempt(s).`, 'system');
+      });
+
+      /* ── Server → Client game events ── */
+
+      /**
+       * 'joinedGame' — server acknowledges our join and assigns our ID.
+       * Payload: { playerId: string, playerName: string }
+       */
+      socket.on('joinedGame', ({ playerId, playerName }) => {
+        state.myId   = playerId;
+        state.myName = playerName;
+        dom.playerBadge.textContent = playerName;
+        dom.lobbyStatus.textContent = `Joined as "${playerName}" — waiting for game to start…`;
+        addLog(`You joined as "${playerName}".`, 'system');
+      });
+
+      /**
+       * 'updateGameState' — full state sync sent after every meaningful
+       * action (card played, bluff called, turn advanced, player joins/leaves).
+       *
+       * Expected payload shape:
+       * {
+       *   players: Array<{ id: string, name: string, cardCount: number, isConnected: boolean }>,
+       *   myHand:  Array<{ rank: string, suit: string }>,
+       *   pileCount: number,
+       *   lastDeclaredRank: string | null,
+       *   lastPlayerId: string | null,
+       *   currentTurnId: string | null,
+       *   phase: 'lobby' | 'playing' | 'ended',
+       * }
+       */
+      socket.on('updateGameState', (payload) => {
+        // Merge server payload into local state
+        Object.assign(state, payload);
+        // Clear selection whenever the state refreshes (turn changed, etc.)
+        state.selectedCardIndices.clear();
+        // Re-render the entire UI from the new state
+        renderAll();
+      });
+
+      /**
+       * 'playerTurn' — lightweight notification that it's a specific player's turn.
+       * Payload: { currentTurnId: string }
+       * (A full updateGameState usually follows, but this arrives first for
+       *  low-latency turn announcements.)
+       */
+      socket.on('playerTurn', ({ currentTurnId }) => {
+        state.currentTurnId = currentTurnId;
+        renderTurnBanner();
+        renderControls();
+
+        const turnPlayer = getPlayerById(currentTurnId);
+        if (turnPlayer) {
+          const label = isMyTurn() ? 'Your turn!' : `${turnPlayer.name}'s turn`;
+          addLog(label, 'turn');
+        }
+      });
+
+      /**
+       * 'gameMessage' — human-readable event broadcast to all clients.
+       * Payload: { message: string, type: 'action'|'bluff'|'truth'|'system'|'win' }
+       */
+      socket.on('gameMessage', ({ message, type = 'action' }) => {
+        addLog(message, type);
+        // Surface high-value events as toasts too
+        if (type === 'bluff' || type === 'win') {
+          showToast(message, type === 'win' ? 'gold' : 'error');
+        }
+      });
+
+      /**
+       * 'gameStarted' — server signals the game has moved from lobby to playing.
+       * Payload: (none required — a full updateGameState follows)
+       */
+      socket.on('gameStarted', () => {
+        hideLobby();
+        addLog('Game started! Good luck.', 'system');
+        showToast('Game started!', 'success');
+      });
+
+      /**
+       * 'gameOver' — one player has won.
+       * Payload: { winnerId: string, winnerName: string }
+       */
+      socket.on('gameOver', ({ winnerName }) => {
+        const msg = winnerName === state.myName
+          ? '🏆 You won! All your cards are gone.'
+          : `${winnerName} won the game!`;
+        addLog(msg, 'win');
+        showToast(msg, 'gold');
+        setControlsEnabled(false);
+      });
+
+      /**
+       * 'actionError' — server rejected an action (e.g. not your turn,
+       * invalid card count). Show an inline error without crashing the UI.
+       * Payload: { message: string }
+       */
+      socket.on('actionError', ({ message }) => {
+        showPlayError(message);
+        showToast(message, 'error');
+      });
+    }
+
+    /* ── 6. UI UPDATERS ─────────────────────────────────────────────────── */
+
+    /** Re-render every part of the UI from current state */
+    function renderAll() {
+      renderOpponents();
+      renderPile();
+      renderTurnBanner();
+      renderHand();
+      renderControls();
+    }
+
+    /** Render opponent chips in the opponents row */
+    function renderOpponents() {
+      dom.opponentsRow.innerHTML = '';
+      state.players.forEach((player) => {
+        if (player.id === state.myId) return; // skip self
+
+        const chip = document.createElement('div');
+        chip.className  = 'opponent-chip' + (player.id === state.currentTurnId ? ' active-turn' : '');
+        chip.role       = 'listitem';
+        chip.innerHTML  = `
+          <span>${escapeHtml(player.name)}</span>
+          <span class="card-count" aria-label="${player.cardCount} cards">${player.cardCount}</span>
+        `;
+        if (!player.isConnected) {
+          chip.style.opacity = '0.45';
+          chip.title = 'Disconnected';
+        }
+        dom.opponentsRow.appendChild(chip);
+      });
+
+      // Fallback if no opponents yet
+      if (!dom.opponentsRow.children.length) {
+        dom.opponentsRow.innerHTML = '<span style="color:var(--text-dim);font-size:0.78rem;">Waiting for other players…</span>';
+      }
+    }
+
+    /** Render the central pile display */
+    function renderPile() {
+      const count = state.pileCount;
+      dom.pileCount.textContent = count;
+      dom.pileVisual.classList.toggle('empty', count === 0);
+
+      // Last player display
+      const lastPlayer = getPlayerById(state.lastPlayerId);
+      dom.lastPlayerName.textContent = lastPlayer ? lastPlayer.name : '—';
+
+      // Declared rank badge
+      if (state.lastDeclaredRank) {
+        dom.declaredRankBadge.classList.remove('hidden');
+        dom.declaredRankValue.textContent = formatRank(state.lastDeclaredRank);
+      } else {
+        dom.declaredRankBadge.classList.add('hidden');
+      }
+    }
+
+    /** Render the turn indicator banner */
+    function renderTurnBanner() {
+      if (state.phase === 'lobby') {
+        dom.turnBanner.textContent = 'Waiting for game to start…';
+        dom.turnBanner.classList.remove('your-turn');
+        return;
+      }
+
+      if (isMyTurn()) {
+        dom.turnBanner.textContent = '✨ Your turn — select cards and declare a rank, or call bluff!';
+        dom.turnBanner.classList.add('your-turn');
+      } else {
+        const player = getPlayerById(state.currentTurnId);
+        dom.turnBanner.textContent = player ? `${player.name}'s turn…` : 'Waiting…';
+        dom.turnBanner.classList.remove('your-turn');
+      }
+    }
+
+    /** Render the player's hand of cards */
+    function renderHand() {
+      dom.handContainer.innerHTML = '';
+
+      state.myHand.forEach((card, idx) => {
+        const el = document.createElement('div');
+        el.className   = 'card' + (state.selectedCardIndices.has(idx) ? ' selected' : '');
+        el.role        = 'listitem';
+        el.tabIndex    = 0;
+        el.dataset.idx  = idx;
+        el.dataset.suit = card.suit;
+        el.setAttribute('aria-label', `${card.rank} of ${card.suit}${state.selectedCardIndices.has(idx) ? ', selected' : ''}`);
+        el.setAttribute('aria-pressed', state.selectedCardIndices.has(idx).toString());
+        el.innerHTML = `
+          <div class="card-corner top-left">
+            <span class="card-rank">${escapeHtml(card.rank)}</span>
+            <span class="card-suit">${card.suit}</span>
+          </div>
+          <div class="card-center" aria-hidden="true">${card.suit}</div>
+          <div class="card-corner bot-right">
+            <span class="card-rank">${escapeHtml(card.rank)}</span>
+            <span class="card-suit">${card.suit}</span>
+          </div>
+        `;
+        // Click: toggle selection
+        el.addEventListener('click',   () => toggleCardSelection(idx));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            toggleCardSelection(idx);
+          }
+        });
+        dom.handContainer.appendChild(el);
+      });
+
+      const count = state.myHand.length;
+      dom.handCardCount.textContent = `${count} card${count !== 1 ? 's' : ''}`;
+      updateSelectionHint();
+    }
+
+    /**
+     * Enable / disable and update all control-panel buttons
+     * based on current game phase, whose turn it is, and
+     * local selection state.
+     */
+    function renderControls() {
+      const myTurn    = isMyTurn() && state.phase === 'playing';
+      const hasSel    = state.selectedCardIndices.size > 0;
+      const hasRank   = dom.rankSelect.value !== '';
+      const canPlay   = myTurn && hasSel && hasRank;
+      const canBluff  = myTurn && state.pileCount > 0 && state.selectedCardIndices.size === 0;
+
+      dom.btnPlay.disabled  = !canPlay;
+      dom.btnSkip.disabled  = !myTurn;
+      dom.btnBluff.disabled = !myTurn || state.pileCount === 0;
+
+      // Clear stale error when controls update
+      if (canPlay) clearPlayError();
+    }
+
+    /** Show or clear the inline play-action validation message */
+    function showPlayError(msg) {
+      dom.playError.textContent = msg ? `⚠ ${msg}` : '';
+    }
+    function clearPlayError() { dom.playError.textContent = ''; }
+
+    /** Enable or disable ALL interactive controls at once (e.g. on disconnect) */
+    function setControlsEnabled(enabled) {
+      dom.btnPlay.disabled  = !enabled;
+      dom.btnSkip.disabled  = !enabled;
+      dom.btnBluff.disabled = !enabled;
+    }
+
+    /** Update the card-selection count hint below the hand */
+    function updateSelectionHint() {
+      const n = state.selectedCardIndices.size;
+      dom.selectionHint.textContent = n > 0
+        ? `${n} card${n > 1 ? 's' : ''} selected — choose a rank and play`
+        : '';
+    }
+
+    /** Hide the lobby overlay and reveal the game board */
+    function hideLobby() {
+      dom.lobbyOverlay.classList.add('hidden');
+    }
+
+    /* ── 7. USER ACTIONS ─────────────────────────────────────────────────── */
+
+    /** Toggle a card in the local selection set */
+    function toggleCardSelection(idx) {
+      if (state.selectedCardIndices.has(idx)) {
+        state.selectedCardIndices.delete(idx);
+      } else {
+        state.selectedCardIndices.add(idx);
+      }
+      // Update the card element in place (faster than full re-render)
+      const cardEl = dom.handContainer.querySelector(`[data-idx="${idx}"]`);
+      if (cardEl) {
+        const selected = state.selectedCardIndices.has(idx);
+        cardEl.classList.toggle('selected', selected);
+        cardEl.setAttribute('aria-pressed', selected.toString());
+      }
+      updateSelectionHint();
+      renderControls();
+      clearPlayError();
+    }
+
+    /** Submit selected cards + declared rank to the server */
+    function handlePlay() {
+      const selectedIndices = [...state.selectedCardIndices];
+      const declaredRank    = dom.rankSelect.value;
+
+      /* ── Client-side validation ── */
+      if (selectedIndices.length === 0) {
+        showPlayError('Select at least one card to play.');
+        return;
+      }
+      if (!declaredRank) {
+        showPlayError('Choose the rank you are declaring.');
+        return;
+      }
+      if (!isMyTurn()) {
+        showPlayError('It is not your turn.');
+        return;
+      }
+
+      clearPlayError();
+
+      // Extract the actual card objects by index
+      const cardsToPlay = selectedIndices.map((i) => state.myHand[i]);
+
+      /**
+       * Emit 'playCards' to the server.
+       * Expected server payload:
+       * {
+       *   cards:         Array<{ rank: string, suit: string }>,
+       *   declaredRank:  string,   // what the player claims the cards are
+       * }
+       */
+      socket.emit('playCards', {
+        cards:        cardsToPlay,
+        declaredRank: declaredRank,
+      });
+
+      // Reset local selection + dropdown immediately for responsiveness
+      state.selectedCardIndices.clear();
+      dom.rankSelect.value = '';
+      renderControls();
+    }
+
+    /** Call bluff on the last played set of cards */
+    function handleCallBluff() {
+      if (!isMyTurn()) {
+        showPlayError('It is not your turn to call bluff.');
+        return;
+      }
+      if (state.pileCount === 0) {
+        showPlayError('There are no cards in the pile to challenge.');
+        return;
+      }
+      clearPlayError();
+
+      /** Emit 'callBluff' — no payload needed; server knows who acted last */
+      socket.emit('callBluff');
+    }
+
+    /** Skip (pass) the current turn without playing or calling bluff */
+    function handleSkip() {
+      if (!isMyTurn()) return;
+      clearPlayError();
+      /** Emit 'skipTurn' */
+      socket.emit('skipTurn');
+    }
+
+    /** Attempt to join the game via the lobby form */
+    function handleJoinGame() {
+      const name = dom.lobbyNameInput.value.trim();
+      if (!name) {
+        dom.lobbyNameInput.focus();
+        dom.lobbyStatus.textContent = 'Please enter a display name.';
+        return;
+      }
+
+      dom.lobbyJoinBtn.disabled    = true;
+      dom.lobbyStatus.innerHTML    = 'Connecting… <span class="dot-pulse"><span></span><span></span><span></span></span>';
+
+      // Connect the socket (this also starts the reconnection loop)
+      connectSocket(name);
+
+      // After the socket connects, emit the joinGame event so the server
+      // registers us in the room. This is separate from the socket handshake
+      // so the server can store the player in its game-state map.
+      socket.once('connect', () => {
+        socket.emit('joinGame', { name });
+      });
+    }
+
+    /* ── 8. UTILITIES ─────────────────────────────────────────────────────── */
+
+    /** Add an entry to the scrollable game log */
+    function addLog(message, type = 'action') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      const now = new Date();
+      const ts  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      entry.innerHTML = `<span class="log-timestamp">${ts}</span>${escapeHtml(message)}`;
+      dom.gameLog.appendChild(entry);
+      // Auto-scroll to bottom
+      dom.gameLog.scrollTop = dom.gameLog.scrollHeight;
+    }
+
+    /** Show a transient toast notification */
+    let toastTimer = null;
+    function showToast(message, variant = '') {
+      clearTimeout(toastTimer);
+      dom.toast.textContent = message;
+      dom.toast.className   = `show${variant ? ` toast-${variant}` : ''}`;
+      toastTimer = setTimeout(() => {
+        dom.toast.classList.remove('show');
+      }, TOAST_DURATION_MS);
+    }
+
+    /** Return the player object for a given ID, or null */
+    function getPlayerById(id) {
+      return state.players.find((p) => p.id === id) ?? null;
+    }
+
+    /** Whether it is the local player's turn */
+    function isMyTurn() {
+      return state.currentTurnId === state.myId;
+    }
+
+    /**
+     * Format a raw rank string for display.
+     * 'A' → 'Ace', 'J' → 'Jack', etc.
+     */
+    function formatRank(rank) {
+      const names = { A: 'Ace', J: 'Jack', Q: 'Queen', K: 'King' };
+      return names[rank] ?? rank;
+    }
+
+    /** Escape HTML special characters to prevent XSS in server-supplied strings */
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
+        .replace(/'/g,  '&#x27;');
+    }
+
+    /* ── 9. INIT — wire up static DOM event listeners ─────────────────────── */
+
+    (function init() {
+      /* Lobby form */
+      dom.lobbyJoinBtn.addEventListener('click', handleJoinGame);
+      dom.lobbyNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleJoinGame();
+      });
+
+      /* Control panel buttons */
+      dom.btnPlay.addEventListener('click', handlePlay);
+      dom.btnSkip.addEventListener('click', handleSkip);
+      dom.btnBluff.addEventListener('click', handleCallBluff);
+
+      /* Rank dropdown — re-evaluate play button on change */
+      dom.rankSelect.addEventListener('change', () => {
+        clearPlayError();
+        renderControls();
+      });
+
+      /* Log clear */
+      dom.logClear.addEventListener('click', () => {
+        dom.gameLog.innerHTML = '';
+        addLog('Log cleared.', 'system');
+      });
+
+      /* Initial log message */
+      addLog('Welcome to Bluff. Enter your name and join the game!', 'system');
+    })();
+
+  </script>
+</body>
+</html>
