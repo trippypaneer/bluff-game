@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Online multiplayer Bluff card game — claim your cards, catch the liars." />
   <meta name="theme-color" content="#0f0f0f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Bluff" />
 
@@ -17,12 +17,11 @@
   <style>
     /* ── Design tokens ──────────────────────────────────────────────────── */
     :root {
-      /* Palette */
       --bg-void:       #0a0a0a;
       --bg-surface:    #141414;
       --bg-elevated:   #1e1e1e;
-      --bg-card:       #f5efd8;    /* card face */
-      --bg-card-back:  #1c3a6e;    /* card back felt */
+      --bg-card:       #f5efd8;   
+      --bg-card-back:  #1c3a6e;   
 
       --accent-gold:   #c9a84c;
       --accent-gold-l: #e8c96e;
@@ -41,11 +40,9 @@
       --shadow-card:   0 4px 20px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.4);
       --shadow-pile:   0 8px 32px rgba(0,0,0,0.8);
 
-      /* Typography */
       --font-display: 'Georgia', 'Times New Roman', serif;
       --font-ui:       system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-      /* Sizing */
       --header-h:     56px;
       --card-w:       64px;
       --card-h:       90px;
@@ -54,10 +51,9 @@
       --radius-md:    10px;
       --radius-lg:    16px;
 
-      /* Transitions */
       --t-fast:  0.14s ease;
       --t-mid:   0.24s ease;
-      --t-slow:  0.4s cubic-bezier(0.34,1.56,0.64,1);  /* springy */
+      --t-slow:  0.4s cubic-bezier(0.34,1.56,0.64,1); 
     }
 
     /* ── Reset ──────────────────────────────────────────────────────────── */
@@ -207,6 +203,55 @@
       font-size: 0.70rem;
       font-weight: 700;
       color: var(--text-primary);
+    }
+
+    /* ── Last-play banner ──────────────────────────────────────────── */
+    #last-play-banner {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--text-dim);
+      transition: border-left-color var(--t-mid), background var(--t-mid);
+      min-height: 44px;
+    }
+
+    #last-play-banner.lp-action { border-left-color: rgba(255,255,255,0.20); }
+    #last-play-banner.lp-bluff  { border-left-color: var(--accent-red);   background: rgba(181,42,42,0.10); }
+    #last-play-banner.lp-truth  { border-left-color: var(--accent-green); background: rgba(46,204,113,0.08); }
+    #last-play-banner.lp-turn   { border-left-color: var(--accent-gold);  background: rgba(201,168,76,0.08); }
+    #last-play-banner.lp-win    { border-left-color: var(--accent-gold-l); background: rgba(201,168,76,0.14); }
+    #last-play-banner.lp-system { border-left-color: var(--text-dim); }
+
+    #last-play-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      line-height: 1;
+      transition: transform var(--t-fast);
+    }
+
+    #last-play-text {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.35;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    @keyframes bannerPop {
+      from { opacity: 0.3; transform: translateY(-4px); }
+      to   { opacity: 1;   transform: translateY(0);    }
+    }
+    #last-play-banner.refreshed #last-play-text {
+      animation: bannerPop 0.28s ease-out both;
     }
 
     #pile-area {
@@ -365,11 +410,11 @@
       overflow-x: auto;
       overflow-y: visible;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      scrollbar-width: none;  
       scroll-padding-left: 16px;
     }
 
-    #hand-container::-webkit-scrollbar { display: none; }
+    #hand-container::-webkit-scrollbar { display: none; } 
 
     #selection-hint {
       padding: 0 16px;
@@ -545,7 +590,7 @@
       cursor: pointer;
       white-space: nowrap;
       transition: opacity var(--t-fast), transform var(--t-fast);
-      min-height: 44px;
+      min-height: 44px;    
     }
 
     #btn-play:disabled {
@@ -607,41 +652,163 @@
     }
 
     /* ══════════════════════════════════════════════════════════════════════
-       GAME LOG / CHAT
+       "VIEW LOG" BUTTON 
        ══════════════════════════════════════════════════════════════════════ */
-    #log-section {
-      flex: 1;
+    #btn-view-log {
+      width: 100%;
+      min-height: 40px;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
       display: flex;
-      flex-direction: column;
-      background: var(--bg-surface);
-      min-height: 160px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+    }
+    #btn-view-log:hover {
+      background: var(--bg-elevated);
+      border-color: rgba(255,255,255,0.14);
+      color: var(--text-primary);
+    }
+    #btn-view-log:active { transform: scale(0.98); }
+
+    #log-unread-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      background: var(--accent-gold);
+      color: var(--text-inverse);
+      font-size: 0.65rem;
+      font-weight: 800;
+      border-radius: 9px;
+      line-height: 1;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity var(--t-fast), transform var(--t-fast);
+    }
+    #log-unread-badge.visible {
+      opacity: 1;
+      transform: scale(1);
     }
 
-    #log-header {
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border-subtle);
+    /* ══════════════════════════════════════════════════════════════════════
+       GAME LOG MODAL
+       ══════════════════════════════════════════════════════════════════════ */
+    #log-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5,5,5,0.78);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 150;
+      display: flex;
+      align-items: flex-end;           
+      justify-content: center;
+      padding: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+
+    #log-modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #log-modal {
+      width: 100%;
+      max-width: 560px;
+      max-height: 78vh;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border: 1px solid var(--border-subtle);
+      border-bottom: none;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.30s cubic-bezier(0.32,0.72,0,1);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    #log-modal-backdrop.open #log-modal {
+      transform: translateY(0);
+    }
+
+    #log-modal-handle {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      padding: 12px 0 4px;
+    }
+    #log-modal-handle::after {
+      content: '';
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border-subtle);
+    }
+
+    #log-modal-header {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-shrink: 0;
+      padding: 4px 16px 12px;
+      border-bottom: 1px solid var(--border-subtle);
     }
 
-    #log-clear {
+    #log-modal-title {
+      font-size: 0.80rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    #log-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #log-clear,
+    #log-modal-close {
       font-size: 0.70rem;
       color: var(--text-dim);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 4px 8px;
+      padding: 6px 10px;
       border-radius: var(--radius-sm);
       transition: color var(--t-fast), background var(--t-fast);
+      font-family: var(--font-ui);
+      font-weight: 600;
     }
-    #log-clear:hover { color: var(--text-muted); background: var(--bg-elevated); }
+    #log-clear:hover,
+    #log-modal-close:hover { color: var(--text-muted); background: rgba(255,255,255,0.06); }
+
+    #log-modal-close {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+    #log-modal-close:hover { border-color: rgba(255,255,255,0.14); color: var(--text-primary); }
 
     #game-log {
       flex: 1;
       overflow-y: auto;
-      padding: 10px 16px;
+      padding: 12px 16px 16px;
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -802,6 +969,7 @@
       40%            { opacity: 1;   transform: scale(1);   }
     }
 
+    /* ── Toast notification ── */
     #toast {
       position: fixed;
       bottom: calc(env(safe-area-inset-bottom) + 16px);
@@ -832,8 +1000,10 @@
     @media (min-width: 520px) {
       :root { --card-w: 72px; --card-h: 100px; }
       #game-table { padding: 24px 24px 28px; }
-      #control-panel, #log-header, #game-log { padding-left: 24px; padding-right: 24px; }
+      #control-panel { padding-left: 24px; padding-right: 24px; }
       #hand-container { padding-left: 24px; padding-right: 24px; }
+      #log-modal { border-radius: var(--radius-lg); max-height: 72vh; margin-bottom: 24px; }
+      #log-modal-backdrop { align-items: center; padding: 24px; }
     }
   </style>
 </head>
@@ -876,6 +1046,11 @@
     <section id="game-table" aria-label="Game table">
       <div id="opponents-row" role="list" aria-label="Other players"></div>
 
+      <div id="last-play-banner" class="lp-action" role="status" aria-live="polite" aria-atomic="true">
+        <span id="last-play-icon" aria-hidden="true">🃏</span>
+        <span id="last-play-text">Waiting for the first move…</span>
+      </div>
+
       <div id="pile-area">
         <div id="pile-visual" aria-hidden="true">
           <div class="pile-card"></div>
@@ -887,6 +1062,11 @@
           <div class="pile-stat">
             <span class="pile-stat-value" id="pile-count">0</span>
             <span class="pile-stat-label">Cards in pile</span>
+          </div>
+          <div class="pile-divider" aria-hidden="true"></div>
+          <div class="pile-stat">
+            <span class="pile-stat-value" id="last-thrown-count">—</span>
+            <span class="pile-stat-label">Last thrown</span>
           </div>
           <div class="pile-divider" aria-hidden="true"></div>
           <div class="pile-stat">
@@ -955,17 +1135,32 @@
           🎭 Call Bluff!
         </button>
       </div>
-    </section>
 
-    <section id="log-section" aria-label="Game log">
-      <div id="log-header">
-        <span class="section-label">Game Log</span>
-        <button id="log-clear" type="button" aria-label="Clear log">Clear</button>
-      </div>
-      <div id="game-log" role="log" aria-live="polite" aria-atomic="false"></div>
+      <button id="btn-view-log" type="button" aria-haspopup="dialog">
+        <span aria-hidden="true">📋</span>
+        View Game Log
+        <span id="log-unread-badge" aria-label="unread log entries">0</span>
+      </button>
+
     </section>
 
   </main>
+
+  <div id="log-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="log-modal-title" aria-hidden="true">
+    <div id="log-modal">
+      <div id="log-modal-handle" aria-hidden="true"></div>
+
+      <div id="log-modal-header">
+        <span id="log-modal-title" class="section-label">Game Log</span>
+        <div id="log-modal-actions">
+          <button id="log-clear" type="button">Clear</button>
+          <button id="log-modal-close" type="button" aria-label="Close game log">Close</button>
+        </div>
+      </div>
+
+      <div id="game-log" role="log" aria-live="polite" aria-atomic="false"></div>
+    </div>
+  </div>
 
   <div id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
 
@@ -988,6 +1183,11 @@
       currentTurnId:     null, 
       phase:             'lobby', 
       selectedCardIndices: new Set(),  
+
+      // Pile logic
+      previousPileCount:  0,    
+      lastThrownCount:    null, 
+      lastPlayMessage:  null,  
     };
 
     const dom = {
@@ -1003,8 +1203,13 @@
 
       opponentsRow:      document.getElementById('opponents-row'),
 
+      lastPlayBanner:    document.getElementById('last-play-banner'),
+      lastPlayIcon:      document.getElementById('last-play-icon'),
+      lastPlayText:      document.getElementById('last-play-text'),
+
       pileVisual:        document.getElementById('pile-visual'),
       pileCount:         document.getElementById('pile-count'),
+      lastThrownCount:   document.getElementById('last-thrown-count'),
       lastPlayerName:    document.getElementById('last-player-name'),
       declaredRankBadge: document.getElementById('declared-rank-badge'),
       declaredRankValue: document.getElementById('declared-rank-value'),
@@ -1020,6 +1225,10 @@
       btnBluff:          document.getElementById('btn-bluff'),
       playError:         document.getElementById('play-error'),
 
+      btnViewLog:        document.getElementById('btn-view-log'),
+      logUnreadBadge:    document.getElementById('log-unread-badge'),
+      logModalBackdrop:  document.getElementById('log-modal-backdrop'),
+      logModalClose:     document.getElementById('log-modal-close'),
       gameLog:           document.getElementById('game-log'),
       logClear:          document.getElementById('log-clear'),
 
@@ -1077,12 +1286,23 @@
         dom.lobbyStatus.textContent = `Joined as "${playerName}" — waiting for host to start…`;
         dom.lobbyJoinBtn.classList.add('d-none');
         dom.lobbyNameInput.classList.add('d-none');
-        dom.lobbyStartBtn.classList.remove('d-none'); // Show the start button!
+        dom.lobbyStartBtn.classList.remove('d-none'); // Reveal start button!
         addLog(`You joined as "${playerName}".`, 'system');
       });
 
       socket.on('updateGameState', (payload) => {
+        // Save previous pile count to calculate delta
+        state.previousPileCount = state.pileCount;
+        
         Object.assign(state, payload);
+
+        // Calculate how many cards were just thrown
+        if (state.pileCount > state.previousPileCount) {
+            state.lastThrownCount = state.pileCount - state.previousPileCount;
+        } else if (state.pileCount === 0) {
+            state.lastThrownCount = null; // Pile cleared
+        }
+
         state.selectedCardIndices.clear();
         renderAll();
       });
@@ -1101,6 +1321,16 @@
 
       socket.on('gameMessage', ({ message, type = 'action' }) => {
         addLog(message, type);
+
+        // Update Last Play Banner dynamically
+        dom.lastPlayBanner.className = `lp-${type}`;
+        dom.lastPlayText.textContent = message;
+        
+        // Trigger CSS animation by removing and re-adding class
+        dom.lastPlayBanner.classList.remove('refreshed');
+        void dom.lastPlayBanner.offsetWidth; 
+        dom.lastPlayBanner.classList.add('refreshed');
+
         if (type === 'bluff' || type === 'win') {
           showToast(message, type === 'win' ? 'gold' : 'error');
         }
@@ -1163,6 +1393,9 @@
       const count = state.pileCount;
       dom.pileCount.textContent = count;
       dom.pileVisual.classList.toggle('empty', count === 0);
+
+      // Render the newly calculated thrown count
+      dom.lastThrownCount.textContent = state.lastThrownCount !== null ? state.lastThrownCount : '—';
 
       const lastPlayer = getPlayerById(state.lastPlayerId);
       dom.lastPlayerName.textContent = lastPlayer ? lastPlayer.name : '—';
@@ -1354,6 +1587,16 @@
       dom.lobbyStartBtn.textContent = 'Starting...';
     }
 
+    function openLogModal() {
+        dom.logModalBackdrop.classList.add('open');
+        dom.logUnreadBadge.classList.remove('visible');
+        dom.logUnreadBadge.textContent = '0';
+    }
+
+    function closeLogModal() {
+        dom.logModalBackdrop.classList.remove('open');
+    }
+
     function addLog(message, type = 'action') {
       const entry = document.createElement('div');
       entry.className = `log-entry log-${type}`;
@@ -1362,6 +1605,13 @@
       entry.innerHTML = `<span class="log-timestamp">${ts}</span>${escapeHtml(message)}`;
       dom.gameLog.appendChild(entry);
       dom.gameLog.scrollTop = dom.gameLog.scrollHeight;
+
+      // Update unread badge if modal is closed
+      if (!dom.logModalBackdrop.classList.contains('open')) {
+        let currentCount = parseInt(dom.logUnreadBadge.textContent || '0', 10);
+        dom.logUnreadBadge.textContent = currentCount + 1;
+        dom.logUnreadBadge.classList.add('visible');
+      }
     }
 
     let toastTimer = null;
@@ -1389,7 +1639,7 @@
       dom.lobbyNameInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleJoinGame();
       });
-      dom.lobbyStartBtn.addEventListener('click', handleStartGame); // New Event Listener
+      dom.lobbyStartBtn.addEventListener('click', handleStartGame); 
 
       dom.btnPlay.addEventListener('click', handlePlay);
       dom.btnSkip.addEventListener('click', handleSkip);
@@ -1399,6 +1649,9 @@
         clearPlayError();
         renderControls();
       });
+
+      dom.btnViewLog.addEventListener('click', openLogModal);
+      dom.logModalClose.addEventListener('click', closeLogModal);
 
       dom.logClear.addEventListener('click', () => {
         dom.gameLog.innerHTML = '';
