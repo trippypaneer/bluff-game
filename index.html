@@ -15,7 +15,6 @@
   <title>Bluff — Multiplayer Card Game</title>
 
   <style>
-    /* ── Design tokens ──────────────────────────────────────────────────── */
     :root {
       --bg-void:       #0a0a0a;
       --bg-surface:    #141414;
@@ -44,6 +43,7 @@
       --font-ui:       system-ui, -apple-system, 'Segoe UI', sans-serif;
 
       --header-h:     56px;
+      --nav-h:        64px;
       --card-w:       64px;
       --card-h:       90px;
       --card-radius:  8px;
@@ -56,7 +56,6 @@
       --t-slow:  0.4s cubic-bezier(0.34,1.56,0.64,1); 
     }
 
-    /* ── Reset ──────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
 
@@ -74,1593 +73,461 @@
       padding-right:  env(safe-area-inset-right);
     }
 
-    .visually-hidden {
-      position: absolute; width: 1px; height: 1px;
-      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
-    }
-    
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
     .d-none { display: none !important; }
 
-    /* ══════════════════════════════════════════════════════════════════════
-       HEADER
-       ══════════════════════════════════════════════════════════════════════ */
+    /* ── HEADER ── */
     #header {
-      flex-shrink: 0;
-      height: var(--header-h);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-subtle);
-      position: relative;
-      z-index: 10;
+      flex-shrink: 0; height: var(--header-h); display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); position: relative; z-index: 10;
     }
+    #header-title { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.06em; user-select: none; }
+    #connection-status { display: flex; align-items: center; gap: 7px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); transition: color var(--t-mid); }
+    #connection-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; transition: background var(--t-mid), box-shadow var(--t-mid); }
+    body.connected #connection-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    body.connected #connection-status { color: var(--accent-green); }
+    body.disconnected #connection-dot { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+    body.disconnected #connection-status { color: var(--accent-red); }
+    #player-badge { font-size: 0.72rem; color: var(--text-muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    #header-title {
-      font-family: var(--font-display);
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: var(--accent-gold);
-      letter-spacing: 0.06em;
-      user-select: none;
+    /* ── MAIN TABS CONTAINER ── */
+    #app { flex: 1; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-void); }
+    .tab-content { display: none; flex: 1; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .tab-content.active { display: flex; }
+
+    /* ── BOTTOM NAVIGATION ── */
+    #bottom-nav {
+      flex-shrink: 0; height: var(--nav-h); background: var(--bg-surface); border-top: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-around; z-index: 10; padding-bottom: max(0px, env(safe-area-inset-bottom));
     }
-
-    #connection-status {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      transition: color var(--t-mid);
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;
+      background: none; border: none; color: var(--text-muted); font-size: 0.70rem; font-weight: 600; cursor: pointer; transition: color var(--t-fast);
     }
-
-    #connection-dot {
-      width:  9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--text-dim);
-      flex-shrink: 0;
-      transition: background var(--t-mid), box-shadow var(--t-mid);
+    .nav-btn.active { color: var(--accent-gold); }
+    .nav-icon-container { position: relative; font-size: 1.25rem; margin-bottom: 2px; }
+    .nav-badge {
+      position: absolute; top: -4px; right: -8px; min-width: 16px; height: 16px; border-radius: 8px;
+      background: var(--accent-gold); color: var(--text-inverse); font-size: 0.6rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0); transition: opacity var(--t-fast), transform var(--t-fast);
     }
+    .nav-badge.visible { opacity: 1; transform: scale(1); }
 
-    body.connected    #connection-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
-    body.connected    #connection-status { color: var(--accent-green); }
-    body.disconnected #connection-dot { background: var(--accent-red);  box-shadow: 0 0 6px var(--accent-red);   }
-    body.disconnected #connection-status { color: var(--accent-red);  }
-
-    #player-badge {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    #app {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* ══════════════════════════════════════════════════════════════════════
-       GAME TABLE
-       ══════════════════════════════════════════════════════════════════════ */
+    /* ── TAB 1: GAME TABLE ── */
     #game-table {
       background: radial-gradient(ellipse at 50% 40%, #1a3228 0%, #0d1e18 60%, #080f0c 100%);
-      padding: 20px 16px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      position: relative;
-      border-bottom: 1px solid var(--border-subtle);
-      background-image:
-        repeating-linear-gradient(0deg,   rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 6px),
-        repeating-linear-gradient(90deg,  rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 6px),
-        radial-gradient(ellipse at 50% 40%, #1a3228 0%, #0d1e18 60%, #080f0c 100%);
+      padding: 30px 16px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; position: relative; border-bottom: 1px solid var(--border-subtle);
     }
 
+    /* THE ARCH OF OPPONENTS */
     #opponents-row {
-      width: 100%;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-      min-height: 44px;
+      width: 100%; display: flex; justify-content: center; align-items: flex-end; gap: 12px; min-height: 70px;
     }
-
     .opponent-chip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 6px 12px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--border-subtle);
-      border-radius: 24px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      transition: border-color var(--t-fast), color var(--t-fast);
+      position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px 12px; background: rgba(0,0,0,0.45); border: 1px solid var(--border-subtle); border-radius: 24px;
+      font-size: 0.75rem; color: var(--text-muted); transition: border-color var(--t-fast), color var(--t-fast);
     }
+    .opponent-chip.active-turn { border-color: var(--accent-gold); color: var(--accent-gold); }
+    .opponent-chip .card-count { background: var(--bg-elevated); border-radius: 12px; padding: 2px 8px; font-size: 0.70rem; font-weight: 700; color: var(--text-primary); }
 
-    .opponent-chip.active-turn {
-      border-color: var(--accent-gold);
-      color: var(--accent-gold);
+    /* PULSING DOT FOR TURN */
+    .turn-dot {
+      position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); display: none; animation: pulse 1.2s infinite ease-in-out;
     }
+    .active-turn .turn-dot { display: block; }
+    @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px var(--accent-green); } 100% { transform: scale(0.9); opacity: 0.8; } }
 
-    .opponent-chip .card-count {
-      background: var(--bg-elevated);
-      border-radius: 12px;
-      padding: 1px 7px;
-      font-size: 0.70rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    /* ── Last-play banner ──────────────────────────────────────────── */
+    /* Last-play banner */
     #last-play-banner {
-      width: 100%;
-      max-width: 420px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: var(--radius-md);
-      border-left: 3px solid var(--text-dim);
-      transition: border-left-color var(--t-mid), background var(--t-mid);
-      min-height: 44px;
+      width: 100%; max-width: 420px; display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius-md); border-left: 3px solid var(--text-dim); transition: border-left-color var(--t-mid), background var(--t-mid); min-height: 44px;
     }
-
     #last-play-banner.lp-action { border-left-color: rgba(255,255,255,0.20); }
-    #last-play-banner.lp-bluff  { border-left-color: var(--accent-red);   background: rgba(181,42,42,0.10); }
+    #last-play-banner.lp-bluff  { border-left-color: var(--accent-red); background: rgba(181,42,42,0.10); }
     #last-play-banner.lp-truth  { border-left-color: var(--accent-green); background: rgba(46,204,113,0.08); }
-    #last-play-banner.lp-turn   { border-left-color: var(--accent-gold);  background: rgba(201,168,76,0.08); }
+    #last-play-banner.lp-turn   { border-left-color: var(--accent-gold); background: rgba(201,168,76,0.08); }
     #last-play-banner.lp-win    { border-left-color: var(--accent-gold-l); background: rgba(201,168,76,0.14); }
     #last-play-banner.lp-system { border-left-color: var(--text-dim); }
+    #last-play-icon { font-size: 1.1rem; flex-shrink: 0; line-height: 1; transition: transform var(--t-fast); }
+    #last-play-text { font-size: 0.82rem; font-weight: 500; color: var(--text-primary); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
-    #last-play-icon {
-      font-size: 1.1rem;
-      flex-shrink: 0;
-      line-height: 1;
-      transition: transform var(--t-fast);
-    }
+    #pile-area { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; }
+    #pile-visual { position: relative; width: var(--card-w); height: var(--card-h); margin-bottom: 4px; }
+    .pile-card { position: absolute; width: var(--card-w); height: var(--card-h); border-radius: var(--card-radius); background: linear-gradient(135deg, #1c3a6e 0%, #0f2550 100%); border: 1px solid rgba(255,255,255,0.14); box-shadow: var(--shadow-card); }
+    .pile-card:nth-child(1) { transform: rotate(-4deg) translate(-3px, -3px); }
+    .pile-card:nth-child(2) { transform: rotate( 2deg) translate( 2px, -1px); }
+    .pile-card:nth-child(3) { transform: rotate(-1deg) translate(-1px, 1px); z-index: 3; }
+    #pile-visual.empty .pile-card { opacity: 0.25; }
 
-    #last-play-text {
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--text-primary);
-      line-height: 1.35;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    @keyframes bannerPop {
-      from { opacity: 0.3; transform: translateY(-4px); }
-      to   { opacity: 1;   transform: translateY(0);    }
-    }
-    #last-play-banner.refreshed #last-play-text {
-      animation: bannerPop 0.28s ease-out both;
-    }
-
-    #pile-area {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      position: relative;
-    }
-
-    #pile-visual {
-      position: relative;
-      width:  var(--card-w);
-      height: var(--card-h);
-      margin-bottom: 4px;
-    }
-
-    .pile-card {
-      position: absolute;
-      width: var(--card-w);
-      height: var(--card-h);
-      border-radius: var(--card-radius);
-      background: linear-gradient(135deg, #1c3a6e 0%, #0f2550 100%);
-      border: 1px solid rgba(255,255,255,0.14);
-      box-shadow: var(--shadow-card);
-    }
-
-    .pile-card:nth-child(1) { transform: rotate(-4deg)  translate(-3px, -3px); }
-    .pile-card:nth-child(2) { transform: rotate( 2deg)  translate( 2px, -1px); }
-    .pile-card:nth-child(3) { transform: rotate(-1deg)  translate(-1px,  1px); z-index: 3; }
-
-    .pile-card::after {
-      content: '';
-      position: absolute;
-      inset: 5px;
-      border-radius: 4px;
-      background-image: repeating-linear-gradient(
-        45deg,
-        rgba(255,255,255,0.03) 0px,
-        rgba(255,255,255,0.03) 3px,
-        transparent 3px,
-        transparent 9px
-      );
-    }
-
-    #pile-visual.empty .pile-card {
-      opacity: 0.25;
-    }
-
-    #pile-info {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .pile-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .pile-stat-value {
-      font-family: var(--font-display);
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--accent-gold);
-      line-height: 1;
-    }
-
-    .pile-stat-label {
-      font-size: 0.64rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text-muted);
-    }
-
-    .pile-divider {
-      width: 1px;
-      height: 32px;
-      background: var(--border-subtle);
-    }
-
-    #declared-rank-badge {
-      padding: 4px 14px;
-      border-radius: 24px;
-      background: rgba(201,168,76,0.12);
-      border: 1px solid var(--border-gold);
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--accent-gold);
-      letter-spacing: 0.04em;
-      transition: opacity var(--t-mid);
-    }
-
+    #pile-info { display: flex; gap: 12px; align-items: center; }
+    .pile-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .pile-stat-value { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: var(--accent-gold); line-height: 1; }
+    .pile-stat-label { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+    .pile-divider { width: 1px; height: 32px; background: var(--border-subtle); }
+    #declared-rank-badge { padding: 4px 14px; border-radius: 24px; background: rgba(201,168,76,0.12); border: 1px solid var(--border-gold); font-size: 0.78rem; font-weight: 600; color: var(--accent-gold); letter-spacing: 0.04em; transition: opacity var(--t-mid); }
     #declared-rank-badge.hidden { opacity: 0; pointer-events: none; }
+    #turn-banner { width: 100%; max-width: 380px; text-align: center; padding: 8px 16px; border-radius: 8px; font-size: 0.80rem; font-weight: 600; letter-spacing: 0.03em; background: rgba(0,0,0,0.40); border: 1px solid var(--border-subtle); color: var(--text-muted); transition: background var(--t-mid), color var(--t-mid), border-color var(--t-mid); }
+    #turn-banner.your-turn { background: rgba(201,168,76,0.12); border-color: var(--border-gold); color: var(--accent-gold-l); }
 
-    #turn-banner {
-      width: 100%;
-      max-width: 380px;
-      text-align: center;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.80rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      background: rgba(0,0,0,0.40);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-muted);
-      transition: background var(--t-mid), color var(--t-mid), border-color var(--t-mid);
-    }
-
-    #turn-banner.your-turn {
-      background: rgba(201,168,76,0.12);
-      border-color: var(--border-gold);
-      color: var(--accent-gold-l);
-    }
-
-    /* ══════════════════════════════════════════════════════════════════════
-       PLAYER HAND
-       ══════════════════════════════════════════════════════════════════════ */
-    #hand-section {
-      background: var(--bg-surface);
-      padding: 14px 0 10px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    #hand-section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      margin-bottom: 10px;
-    }
-
-    .section-label {
-      font-size: 0.70rem;
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    #hand-card-count {
-      font-size: 0.72rem;
-      color: var(--text-dim);
-      background: var(--bg-elevated);
-      padding: 2px 9px;
-      border-radius: 12px;
-    }
-
-    #hand-container {
-      display: flex;
-      gap: 8px;
-      padding: 4px 16px 12px;
-      overflow-x: auto;
-      overflow-y: visible;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;  
-      scroll-padding-left: 16px;
-    }
-
+    /* HAND AREA */
+    #hand-section { background: var(--bg-surface); padding: 14px 0 10px; border-bottom: 1px solid var(--border-subtle); }
+    #hand-section-header { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; margin-bottom: 10px; }
+    .section-label { font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); font-weight: 600; }
+    #hand-card-count { font-size: 0.72rem; color: var(--text-dim); background: var(--bg-elevated); padding: 2px 9px; border-radius: 12px; }
+    #hand-container { display: flex; gap: 8px; padding: 4px 16px 12px; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-padding-left: 16px; }
     #hand-container::-webkit-scrollbar { display: none; } 
+    #selection-hint { padding: 0 16px; font-size: 0.72rem; color: var(--text-dim); min-height: 16px; }
 
-    #selection-hint {
-      padding: 0 16px;
-      font-size: 0.72rem;
-      color: var(--text-dim);
-      min-height: 16px;
-    }
-
-    .card {
-      flex-shrink: 0;
-      width:   var(--card-w);
-      height:  var(--card-h);
-      border-radius: var(--card-radius);
-      background: var(--bg-card);
-      border: 1.5px solid rgba(0,0,0,0.15);
-      box-shadow: var(--shadow-card);
-      cursor: pointer;
-      position: relative;
-      user-select: none;
-      transition:
-        transform  var(--t-slow),
-        box-shadow var(--t-mid),
-        border-color var(--t-fast);
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
-    }
-
-    .card.selected {
-      transform: translateY(-12px) scale(1.04);
-      border-color: var(--accent-gold);
-      box-shadow: var(--shadow-card), 0 0 0 2px var(--accent-gold), 0 12px 24px rgba(0,0,0,0.6);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .card, .card.selected { transition: border-color var(--t-fast); }
-      .card.selected { transform: none; }
-    }
-
-    .card:focus-visible {
-      outline: 2px solid var(--accent-gold);
-      outline-offset: 2px;
-    }
-
-    .card-corner {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      line-height: 1.1;
-    }
-
-    .card-corner.top-left  { top: 5px;  left: 6px;  }
+    /* CARDS */
+    .card { flex-shrink: 0; width: var(--card-w); height: var(--card-h); border-radius: var(--card-radius); background: var(--bg-card); border: 1.5px solid rgba(0,0,0,0.15); box-shadow: var(--shadow-card); cursor: pointer; position: relative; user-select: none; transition: transform var(--t-slow), box-shadow var(--t-mid), border-color var(--t-fast); outline: none; }
+    .card.selected { transform: translateY(-12px) scale(1.04); border-color: var(--accent-gold); box-shadow: var(--shadow-card), 0 0 0 2px var(--accent-gold), 0 12px 24px rgba(0,0,0,0.6); }
+    .card-corner { position: absolute; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+    .card-corner.top-left { top: 5px; left: 6px; }
     .card-corner.bot-right { bottom: 5px; right: 6px; transform: rotate(180deg); }
-
-    .card-rank {
-      font-family: var(--font-display);
-      font-size: 1.0rem;
-      font-weight: 700;
-      color: var(--text-inverse);
-    }
-
-    .card-suit {
-      font-size: 0.78rem;
-      line-height: 1;
-    }
-
-    .card[data-suit="♥"] .card-rank,
-    .card[data-suit="♥"] .card-suit,
-    .card[data-suit="♦"] .card-rank,
-    .card[data-suit="♦"] .card-suit { color: var(--accent-red); }
-
-    .card[data-suit="♠"] .card-rank,
-    .card[data-suit="♠"] .card-suit,
-    .card[data-suit="♣"] .card-rank,
-    .card[data-suit="♣"] .card-suit { color: #1a1a1a; }
-
-    .card-center {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      opacity: 0.18;
-      pointer-events: none;
-    }
-
-    .card::after {
-      content: '✓';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      color: var(--accent-gold);
-      font-weight: 700;
-      background: rgba(201,168,76,0.12);
-      border-radius: calc(var(--card-radius) - 1px);
-      opacity: 0;
-      transition: opacity var(--t-fast);
-    }
-
+    .card-rank { font-family: var(--font-display); font-size: 1.0rem; font-weight: 700; color: var(--text-inverse); }
+    .card-suit { font-size: 0.78rem; line-height: 1; }
+    .card[data-suit="♥"] .card-rank, .card[data-suit="♥"] .card-suit, .card[data-suit="♦"] .card-rank, .card[data-suit="♦"] .card-suit { color: var(--accent-red); }
+    .card[data-suit="♠"] .card-rank, .card[data-suit="♠"] .card-suit, .card[data-suit="♣"] .card-rank, .card[data-suit="♣"] .card-suit { color: #1a1a1a; }
+    .card-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; opacity: 0.18; pointer-events: none; }
+    .card::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--accent-gold); font-weight: 700; background: rgba(201,168,76,0.12); border-radius: calc(var(--card-radius) - 1px); opacity: 0; transition: opacity var(--t-fast); }
     .card.selected::after { opacity: 1; }
-
-    #hand-empty {
-      display: none;
-      padding: 20px 16px;
-      color: var(--text-dim);
-      font-size: 0.82rem;
-      text-align: center;
-    }
-
+    #hand-empty { display: none; padding: 20px 16px; color: var(--text-dim); font-size: 0.82rem; text-align: center; }
     #hand-container:empty ~ #hand-empty { display: block; }
 
-    /* ══════════════════════════════════════════════════════════════════════
-       CONTROL PANEL
-       ══════════════════════════════════════════════════════════════════════ */
-    #control-panel {
-      background: var(--bg-surface);
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
+    /* CONTROLS */
+    #control-panel { background: var(--bg-surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+    #declare-row { display: flex; gap: 10px; align-items: stretch; }
+    #rank-select { flex: 1; appearance: none; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.88rem; padding: 0 36px 0 12px; cursor: pointer; outline: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7a7a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    #rank-select:disabled { opacity: 0.6; cursor: not-allowed; border-color: rgba(255,255,255,0.06); color: var(--text-muted); }
+    #btn-play { padding: 0 20px; background: linear-gradient(135deg, var(--accent-gold) 0%, #a07830 100%); border: none; border-radius: var(--radius-sm); color: var(--text-inverse); font-size: 0.88rem; font-weight: 700; cursor: pointer; min-height: 44px; }
+    #btn-play:disabled { opacity: 0.38; cursor: not-allowed; }
+    #secondary-row { display: flex; gap: 10px; }
+    .btn-secondary { flex: 1; min-height: 44px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+    #btn-bluff { border-color: rgba(181,42,42,0.40); color: #e05555; }
+    #play-error { font-size: 0.74rem; color: var(--accent-red); min-height: 16px; }
 
-    #declare-row {
-      display: flex;
-      gap: 10px;
-      align-items: stretch;
-    }
-
-    #rank-select {
-      flex: 1;
-      appearance: none;
-      -webkit-appearance: none;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 0.88rem;
-      font-family: var(--font-ui);
-      padding: 0 36px 0 12px;
-      cursor: pointer;
-      outline: none;
-      transition: border-color var(--t-fast), box-shadow var(--t-fast);
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7a7a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-    }
-
-    #rank-select:focus {
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
-    }
-
-    #rank-select option {
-      background: var(--bg-elevated);
-      color: var(--text-primary);
-    }
-
-    #btn-play {
-      flex-shrink: 0;
-      padding: 0 20px;
-      background: linear-gradient(135deg, var(--accent-gold) 0%, #a07830 100%);
-      border: none;
-      border-radius: var(--radius-sm);
-      color: var(--text-inverse);
-      font-size: 0.88rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: opacity var(--t-fast), transform var(--t-fast);
-      min-height: 44px;    
-    }
-
-    #btn-play:disabled {
-      opacity: 0.38;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    #btn-play:not(:disabled):active { transform: scale(0.97); }
-
-    #secondary-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn-secondary {
-      flex: 1;
-      min-height: 44px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background var(--t-fast), border-color var(--t-fast), opacity var(--t-fast), transform var(--t-fast);
-      letter-spacing: 0.02em;
-    }
-
-    .btn-secondary:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
-
-    .btn-secondary:not(:disabled):active { transform: scale(0.97); }
-
-    #btn-bluff {
-      border-color: rgba(181,42,42,0.40);
-      color: #e05555;
-    }
-
-    #btn-bluff:not(:disabled):hover {
-      background: rgba(181,42,42,0.14);
-      border-color: rgba(181,42,42,0.70);
-    }
-
-    #btn-skip:not(:disabled):hover {
-      background: var(--bg-surface);
-      border-color: rgba(255,255,255,0.14);
-    }
-
-    #play-error {
-      font-size: 0.74rem;
-      color: var(--accent-red);
-      min-height: 16px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    /* ══════════════════════════════════════════════════════════════════════
-       "VIEW LOG" BUTTON 
-       ══════════════════════════════════════════════════════════════════════ */
-    #btn-view-log {
-      width: 100%;
-      min-height: 40px;
-      background: transparent;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
-    }
-    #btn-view-log:hover {
-      background: var(--bg-elevated);
-      border-color: rgba(255,255,255,0.14);
-      color: var(--text-primary);
-    }
-    #btn-view-log:active { transform: scale(0.98); }
-
-    #log-unread-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 5px;
-      background: var(--accent-gold);
-      color: var(--text-inverse);
-      font-size: 0.65rem;
-      font-weight: 800;
-      border-radius: 9px;
-      line-height: 1;
-      opacity: 0;
-      transform: scale(0.6);
-      transition: opacity var(--t-fast), transform var(--t-fast);
-    }
-    #log-unread-badge.visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    /* ══════════════════════════════════════════════════════════════════════
-       GAME LOG MODAL
-       ══════════════════════════════════════════════════════════════════════ */
-    #log-modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(5,5,5,0.78);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      z-index: 150;
-      display: flex;
-      align-items: flex-end;           
-      justify-content: center;
-      padding: 0;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.22s ease;
-    }
-
-    #log-modal-backdrop.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    #log-modal {
-      width: 100%;
-      max-width: 560px;
-      max-height: 78vh;
-      background: var(--bg-elevated);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      border: 1px solid var(--border-subtle);
-      border-bottom: none;
-      display: flex;
-      flex-direction: column;
-      transform: translateY(100%);
-      transition: transform 0.30s cubic-bezier(0.32,0.72,0,1);
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    #log-modal-backdrop.open #log-modal {
-      transform: translateY(0);
-    }
-
-    #log-modal-handle {
-      flex-shrink: 0;
-      display: flex;
-      justify-content: center;
-      padding: 12px 0 4px;
-    }
-    #log-modal-handle::after {
-      content: '';
-      width: 40px;
-      height: 4px;
-      border-radius: 2px;
-      background: var(--border-subtle);
-    }
-
-    #log-modal-header {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 16px 12px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    #log-modal-title {
-      font-size: 0.80rem;
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    #log-modal-actions {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    #log-clear,
-    #log-modal-close {
-      font-size: 0.70rem;
-      color: var(--text-dim);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 6px 10px;
-      border-radius: var(--radius-sm);
-      transition: color var(--t-fast), background var(--t-fast);
-      font-family: var(--font-ui);
-      font-weight: 600;
-    }
-    #log-clear:hover,
-    #log-modal-close:hover { color: var(--text-muted); background: rgba(255,255,255,0.06); }
-
-    #log-modal-close {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      padding: 6px 12px;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-    }
-    #log-modal-close:hover { border-color: rgba(255,255,255,0.14); color: var(--text-primary); }
-
-    #game-log {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 16px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border-subtle) transparent;
-    }
-
-    #game-log::-webkit-scrollbar       { width: 4px; }
-    #game-log::-webkit-scrollbar-track { background: transparent; }
-    #game-log::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
-
-    .log-entry {
-      font-size: 0.80rem;
-      line-height: 1.4;
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
-      border-left: 2px solid transparent;
-      animation: slideIn 0.22s ease-out both;
-      word-break: break-word;
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-8px); }
-      to   { opacity: 1; transform: translateX(0);    }
-    }
-
+    /* ── TAB 2: LOG ── */
+    #tab-log { padding: 20px 16px; background: var(--bg-void); }
+    #log-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 10px; }
+    #log-clear { font-size: 0.75rem; color: var(--text-dim); background: none; border: none; cursor: pointer; }
+    #game-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px;}
+    .log-entry { font-size: 0.85rem; line-height: 1.4; padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid transparent; word-break: break-word; }
     .log-entry.log-system  { color: var(--text-dim); font-style: italic; }
-    .log-entry.log-action  { color: var(--text-muted); border-left-color: var(--border-subtle); background: rgba(255,255,255,0.02); }
-    .log-entry.log-bluff   { color: #e05555; border-left-color: var(--accent-red);  background: rgba(181,42,42,0.08); }
+    .log-entry.log-action  { color: var(--text-muted); border-left-color: var(--border-subtle); background: rgba(255,255,255,0.03); }
+    .log-entry.log-bluff   { color: #e05555; border-left-color: var(--accent-red); background: rgba(181,42,42,0.08); }
     .log-entry.log-truth   { color: #4cba6f; border-left-color: var(--accent-green); background: rgba(46,204,113,0.08); }
-    .log-entry.log-turn    { color: var(--accent-gold); border-left-color: var(--border-gold); background: rgba(201,168,76,0.06); font-weight: 600; }
-    .log-entry.log-win     { color: var(--accent-gold-l); border-left-color: var(--accent-gold); background: rgba(201,168,76,0.12); font-weight: 700; font-size: 0.85rem; }
+    .log-entry.log-turn    { color: var(--accent-gold); border-left-color: var(--border-gold); background: rgba(201,168,76,0.08); font-weight: 600; }
+    .log-entry.log-win     { color: var(--accent-gold-l); border-left-color: var(--accent-gold); background: rgba(201,168,76,0.12); font-weight: 700; font-size: 0.9rem; }
+    .log-timestamp { font-size: 0.66rem; color: var(--text-dim); margin-right: 8px; }
 
-    .log-timestamp {
-      font-size: 0.66rem;
-      color: var(--text-dim);
-      margin-right: 5px;
-    }
+    /* ── TAB 3: SETTINGS ── */
+    #tab-settings { padding: 30px 20px; background: var(--bg-void); align-items: center;}
+    .settings-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; width: 100%; max-width: 400px; text-align: center; }
+    .settings-title { color: var(--text-primary); font-size: 1.2rem; font-weight: 600; margin-bottom: 10px; }
+    .settings-desc { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
+    #btn-reset-game { width: 100%; min-height: 48px; background: rgba(181,42,42,0.15); border: 1px solid rgba(181,42,42,0.40); border-radius: var(--radius-sm); color: #e05555; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background var(--t-fast); }
+    #btn-reset-game:hover { background: rgba(181,42,42,0.3); }
 
-    /* ── Lobby / waiting overlay ── */
-    #lobby-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(10,10,10,0.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 100;
-      backdrop-filter: blur(4px);
-      padding: 24px;
-    }
+    /* ── Lobby ── */
+    #lobby-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+    #lobby-card { background: var(--bg-elevated); border: 1px solid var(--border-gold); border-radius: var(--radius-lg); padding: 32px 28px; max-width: 360px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 18px; }
+    #lobby-title { font-family: var(--font-display); font-size: 1.8rem; color: var(--accent-gold); }
+    #lobby-name-input { width: 100%; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); text-align: center; outline: none; }
+    #lobby-join-btn, #lobby-start-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--accent-gold) 0%, #a07830 100%); border: none; border-radius: var(--radius-sm); color: var(--text-inverse); font-weight: 700; cursor: pointer; }
+    #lobby-start-btn { background: linear-gradient(135deg, var(--accent-green) 0%, #219653 100%); }
+    #lobby-status { font-size: 0.75rem; color: var(--text-dim); }
 
-    #lobby-overlay.hidden { display: none; }
-
-    #lobby-card {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-gold);
-      border-radius: var(--radius-lg);
-      padding: 32px 28px;
-      max-width: 360px;
-      width: 100%;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.8);
-    }
-
-    #lobby-title {
-      font-family: var(--font-display);
-      font-size: 1.8rem;
-      color: var(--accent-gold);
-      letter-spacing: 0.06em;
-    }
-
-    #lobby-subtitle {
-      font-size: 0.84rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    #lobby-name-input {
-      width: 100%;
-      padding: 12px 14px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 0.95rem;
-      font-family: var(--font-ui);
-      text-align: center;
-      outline: none;
-      transition: border-color var(--t-fast), box-shadow var(--t-fast);
-    }
-
-    #lobby-name-input::placeholder { color: var(--text-dim); }
-    #lobby-name-input:focus {
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
-    }
-
-    #lobby-join-btn {
-      width: 100%;
-      padding: 13px;
-      background: linear-gradient(135deg, var(--accent-gold) 0%, #a07830 100%);
-      border: none;
-      border-radius: var(--radius-sm);
-      color: var(--text-inverse);
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: opacity var(--t-fast), transform var(--t-fast);
-    }
-    #lobby-join-btn:hover  { opacity: 0.88; }
-    #lobby-join-btn:active { transform: scale(0.98); }
-
-    /* New Start Button Styling */
-    #lobby-start-btn {
-      width: 100%;
-      padding: 13px;
-      background: linear-gradient(135deg, var(--accent-green) 0%, #219653 100%);
-      border: none;
-      border-radius: var(--radius-sm);
-      color: var(--text-inverse);
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: opacity var(--t-fast), transform var(--t-fast);
-    }
-    #lobby-start-btn:hover  { opacity: 0.88; }
-    #lobby-start-btn:active { transform: scale(0.98); }
-
-    #lobby-status {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-
-    .dot-pulse {
-      display: inline-flex;
-      gap: 4px;
-      vertical-align: middle;
-    }
-    .dot-pulse span {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: var(--text-dim);
-      animation: dotBounce 1.2s ease-in-out infinite;
-    }
-    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
-    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes dotBounce {
-      0%, 80%, 100% { opacity: 0.3; transform: scale(0.7); }
-      40%            { opacity: 1;   transform: scale(1);   }
-    }
-
-    /* ── Toast notification ── */
-    #toast {
-      position: fixed;
-      bottom: calc(env(safe-area-inset-bottom) + 16px);
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: 24px;
-      padding: 9px 20px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      box-shadow: var(--shadow-pile);
-      z-index: 200;
-      white-space: nowrap;
-      pointer-events: none;
-      transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease;
-      opacity: 0;
-    }
-    #toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-    #toast.toast-error  { border-color: rgba(181,42,42,0.5); color: #e05555; }
+    #toast { position: fixed; bottom: calc(var(--nav-h) + 16px); left: 50%; transform: translateX(-50%) translateY(80px); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 24px; padding: 9px 20px; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); box-shadow: var(--shadow-pile); z-index: 200; opacity: 0; transition: transform 0.28s, opacity 0.2s; }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #toast.toast-error { border-color: rgba(181,42,42,0.5); color: #e05555; }
     #toast.toast-success{ border-color: rgba(46,204,113,0.5); color: #4cba6f; }
-    #toast.toast-gold   { border-color: var(--border-gold); color: var(--accent-gold); }
-
-    @media (min-width: 520px) {
-      :root { --card-w: 72px; --card-h: 100px; }
-      #game-table { padding: 24px 24px 28px; }
-      #control-panel { padding-left: 24px; padding-right: 24px; }
-      #hand-container { padding-left: 24px; padding-right: 24px; }
-      #log-modal { border-radius: var(--radius-lg); max-height: 72vh; margin-bottom: 24px; }
-      #log-modal-backdrop { align-items: center; padding: 24px; }
-    }
+    #toast.toast-gold { border-color: var(--border-gold); color: var(--accent-gold); }
   </style>
 </head>
 <body class="disconnected">
 
-  <div id="lobby-overlay" role="dialog" aria-modal="true" aria-labelledby="lobby-title">
+  <div id="lobby-overlay">
     <div id="lobby-card">
       <h1 id="lobby-title">BLUFF</h1>
-      <p id="lobby-subtitle">
-        Multiplayer card game — deal your hand, declare a rank,<br>
-        and hope no one calls your bluff.
-      </p>
-      <input
-        id="lobby-name-input"
-        type="text"
-        maxlength="20"
-        placeholder="Your display name…"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="words"
-        spellcheck="false"
-      />
+      <input id="lobby-name-input" type="text" maxlength="20" placeholder="Your display name…" autocomplete="off" autocorrect="off" spellcheck="false" />
       <button id="lobby-join-btn" type="button">Join Game</button>
       <button id="lobby-start-btn" type="button" class="d-none">Start Game (Need 2+ Players)</button>
       <p id="lobby-status">Connecting to server…</p>
     </div>
   </div>
 
-  <header id="header" role="banner">
+  <header id="header">
     <h1 id="header-title">♠ BLUFF</h1>
-    <span id="player-badge" aria-label="Your name"></span>
-    <div id="connection-status" role="status" aria-live="polite">
-      <span id="connection-dot" aria-hidden="true"></span>
+    <span id="player-badge"></span>
+    <div id="connection-status">
+      <span id="connection-dot"></span>
       <span id="connection-label">Offline</span>
     </div>
   </header>
 
-  <main id="app" role="main">
+  <main id="app">
 
-    <section id="game-table" aria-label="Game table">
-      <div id="opponents-row" role="list" aria-label="Other players"></div>
-
-      <div id="last-play-banner" class="lp-action" role="status" aria-live="polite" aria-atomic="true">
-        <span id="last-play-icon" aria-hidden="true">🃏</span>
-        <span id="last-play-text">Waiting for the first move…</span>
-      </div>
-
-      <div id="pile-area">
-        <div id="pile-visual" aria-hidden="true">
-          <div class="pile-card"></div>
-          <div class="pile-card"></div>
-          <div class="pile-card"></div>
+    <!-- GAME TAB -->
+    <div id="tab-game" class="tab-content active">
+      <section id="game-table">
+        <div id="opponents-row"></div>
+        <div id="last-play-banner" class="lp-action">
+          <span id="last-play-icon">🃏</span>
+          <span id="last-play-text">Waiting for the first move…</span>
         </div>
-
-        <div id="pile-info">
-          <div class="pile-stat">
-            <span class="pile-stat-value" id="pile-count">0</span>
-            <span class="pile-stat-label">Cards in pile</span>
+        <div id="pile-area">
+          <div id="pile-visual"><div class="pile-card"></div><div class="pile-card"></div><div class="pile-card"></div></div>
+          <div id="pile-info">
+            <div class="pile-stat"><span class="pile-stat-value" id="pile-count">0</span><span class="pile-stat-label">Cards in pile</span></div>
+            <div class="pile-divider"></div>
+            <div class="pile-stat"><span class="pile-stat-value" id="last-thrown-count">—</span><span class="pile-stat-label">Last thrown</span></div>
+            <div class="pile-divider"></div>
+            <div class="pile-stat"><span class="pile-stat-value" id="last-player-name">—</span><span class="pile-stat-label">Last play by</span></div>
           </div>
-          <div class="pile-divider" aria-hidden="true"></div>
-          <div class="pile-stat">
-            <span class="pile-stat-value" id="last-thrown-count">—</span>
-            <span class="pile-stat-label">Last thrown</span>
-          </div>
-          <div class="pile-divider" aria-hidden="true"></div>
-          <div class="pile-stat">
-            <span class="pile-stat-value" id="last-player-name">—</span>
-            <span class="pile-stat-label">Last play by</span>
-          </div>
+          <div id="declared-rank-badge" class="hidden">Rank: <span id="declared-rank-value">—</span></div>
         </div>
+        <div id="turn-banner">Waiting for game to start…</div>
+      </section>
 
-        <div id="declared-rank-badge" class="hidden" aria-live="polite">
-          Rank: <span id="declared-rank-value">—</span>
+      <section id="hand-section">
+        <div id="hand-section-header">
+          <span class="section-label">Your Hand</span>
+          <span id="hand-card-count">0 cards</span>
         </div>
+        <div id="hand-container"></div>
+        <p id="hand-empty">Your hand is empty. You've played all your cards!</p>
+        <p id="selection-hint"></p>
+      </section>
+
+      <section id="control-panel">
+        <div id="declare-row">
+          <select id="rank-select">
+            <option value="">— Declare rank —</option>
+            <option value="A">Ace (A)</option><option value="2">Two (2)</option><option value="3">Three (3)</option><option value="4">Four (4)</option>
+            <option value="5">Five (5)</option><option value="6">Six (6)</option><option value="7">Seven (7)</option><option value="8">Eight (8)</option>
+            <option value="9">Nine (9)</option><option value="10">Ten (10)</option><option value="J">Jack (J)</option><option value="Q">Queen (Q)</option>
+            <option value="K">King (K)</option>
+          </select>
+          <button id="btn-play" disabled>Play Cards</button>
+        </div>
+        <p id="play-error"></p>
+        <div id="secondary-row">
+          <button id="btn-skip" class="btn-secondary" disabled>Skip Turn</button>
+          <button id="btn-bluff" class="btn-secondary" disabled>🎭 Call Bluff!</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- LOG TAB -->
+    <div id="tab-log" class="tab-content">
+      <div id="log-header">
+        <span class="section-label">Game Log</span>
+        <button id="log-clear">Clear History</button>
       </div>
+      <div id="game-log"></div>
+    </div>
 
-      <div id="turn-banner" role="status" aria-live="polite">
-        Waiting for game to start…
+    <!-- SETTINGS TAB -->
+    <div id="tab-settings" class="tab-content">
+      <div class="settings-card">
+        <h2 class="settings-title">Emergency Reset</h2>
+        <p class="settings-desc">Did someone leave? Game stuck? Force a hard reset. This will wipe the table and deal 25 fresh cards to everyone currently in the room.</p>
+        <button id="btn-reset-game">🚨 Restart & Redeal Game</button>
       </div>
-    </section>
-
-    <section id="hand-section" aria-label="Your hand">
-      <div id="hand-section-header">
-        <span class="section-label">Your Hand</span>
-        <span id="hand-card-count" aria-live="polite">0 cards</span>
-      </div>
-
-      <div id="hand-container" role="list" aria-label="Cards in your hand — tap to select"></div>
-
-      <p id="hand-empty" aria-live="polite">
-        Your hand is empty. You've played all your cards!
-      </p>
-
-      <p id="selection-hint" aria-live="polite"></p>
-    </section>
-
-    <section id="control-panel" aria-label="Game controls">
-      <div id="declare-row">
-        <label for="rank-select" class="visually-hidden">Declare rank</label>
-        <select id="rank-select" aria-label="Rank to declare">
-          <option value="">— Declare rank —</option>
-          <option value="A">Ace (A)</option>
-          <option value="2">Two  (2)</option>
-          <option value="3">Three (3)</option>
-          <option value="4">Four (4)</option>
-          <option value="5">Five (5)</option>
-          <option value="6">Six (6)</option>
-          <option value="7">Seven (7)</option>
-          <option value="8">Eight (8)</option>
-          <option value="9">Nine (9)</option>
-          <option value="10">Ten (10)</option>
-          <option value="J">Jack (J)</option>
-          <option value="Q">Queen (Q)</option>
-          <option value="K">King (K)</option>
-        </select>
-
-        <button id="btn-play" type="button" disabled aria-describedby="play-error">
-          Play Cards
-        </button>
-      </div>
-
-      <p id="play-error" role="alert" aria-live="assertive"></p>
-
-      <div id="secondary-row">
-        <button id="btn-skip"  class="btn-secondary" type="button" disabled>
-          Skip Turn
-        </button>
-        <button id="btn-bluff" class="btn-secondary" type="button" disabled>
-          🎭 Call Bluff!
-        </button>
-      </div>
-
-      <button id="btn-view-log" type="button" aria-haspopup="dialog">
-        <span aria-hidden="true">📋</span>
-        View Game Log
-        <span id="log-unread-badge" aria-label="unread log entries">0</span>
-      </button>
-
-    </section>
+    </div>
 
   </main>
 
-  <div id="log-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="log-modal-title" aria-hidden="true">
-    <div id="log-modal">
-      <div id="log-modal-handle" aria-hidden="true"></div>
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-target="tab-game">
+      <span class="nav-icon-container">🃏</span>Game
+    </button>
+    <button class="nav-btn" data-target="tab-log">
+      <span class="nav-icon-container">📋<span id="log-unread-badge" class="nav-badge">0</span></span>Log
+    </button>
+    <button class="nav-btn" data-target="tab-settings">
+      <span class="nav-icon-container">⚙️</span>Settings
+    </button>
+  </nav>
 
-      <div id="log-modal-header">
-        <span id="log-modal-title" class="section-label">Game Log</span>
-        <div id="log-modal-actions">
-          <button id="log-clear" type="button">Clear</button>
-          <button id="log-modal-close" type="button" aria-label="Close game log">Close</button>
-        </div>
-      </div>
-
-      <div id="game-log" role="log" aria-live="polite" aria-atomic="false"></div>
-    </div>
-  </div>
-
-  <div id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
+  <div id="toast"></div>
 
   <script src="https://bluff-backend-abje.onrender.com/socket.io/socket.io.js"></script>
-
   <script>
     const SERVER_URL = 'https://bluff-backend-abje.onrender.com';
-    const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-    const SUITS = ['♠','♥','♦','♣'];
     const TOAST_DURATION_MS = 3000;
 
     const state = {
-      myId:       null,
-      myName:     null,
-      players:           [],   
-      myHand:            [],   
-      pileCount:         0,
-      lastDeclaredRank:  null, 
-      lastPlayerId:      null, 
-      currentTurnId:     null, 
-      phase:             'lobby', 
-      selectedCardIndices: new Set(),  
-
-      // Pile logic
-      previousPileCount:  0,    
-      lastThrownCount:    null, 
-      lastPlayMessage:  null,  
+      myId: null, myName: null, players: [], myHand: [], pileCount: 0,
+      lastDeclaredRank: null, lastPlayerId: null, currentTurnId: null, phase: 'lobby',
+      selectedCardIndices: new Set(), previousPileCount: 0, lastThrownCount: null
     };
 
     const dom = {
-      body:              document.body,
-      lobbyOverlay:      document.getElementById('lobby-overlay'),
-      lobbyNameInput:    document.getElementById('lobby-name-input'),
-      lobbyJoinBtn:      document.getElementById('lobby-join-btn'),
-      lobbyStartBtn:     document.getElementById('lobby-start-btn'),
-      lobbyStatus:       document.getElementById('lobby-status'),
-
-      connectionLabel:   document.getElementById('connection-label'),
-      playerBadge:       document.getElementById('player-badge'),
-
-      opponentsRow:      document.getElementById('opponents-row'),
-
-      lastPlayBanner:    document.getElementById('last-play-banner'),
-      lastPlayIcon:      document.getElementById('last-play-icon'),
-      lastPlayText:      document.getElementById('last-play-text'),
-
-      pileVisual:        document.getElementById('pile-visual'),
-      pileCount:         document.getElementById('pile-count'),
-      lastThrownCount:   document.getElementById('last-thrown-count'),
-      lastPlayerName:    document.getElementById('last-player-name'),
-      declaredRankBadge: document.getElementById('declared-rank-badge'),
-      declaredRankValue: document.getElementById('declared-rank-value'),
-      turnBanner:        document.getElementById('turn-banner'),
-
-      handContainer:     document.getElementById('hand-container'),
-      handCardCount:     document.getElementById('hand-card-count'),
-      selectionHint:     document.getElementById('selection-hint'),
-
-      rankSelect:        document.getElementById('rank-select'),
-      btnPlay:           document.getElementById('btn-play'),
-      btnSkip:           document.getElementById('btn-skip'),
-      btnBluff:          document.getElementById('btn-bluff'),
-      playError:         document.getElementById('play-error'),
-
-      btnViewLog:        document.getElementById('btn-view-log'),
-      logUnreadBadge:    document.getElementById('log-unread-badge'),
-      logModalBackdrop:  document.getElementById('log-modal-backdrop'),
-      logModalClose:     document.getElementById('log-modal-close'),
-      gameLog:           document.getElementById('game-log'),
-      logClear:          document.getElementById('log-clear'),
-
-      toast:             document.getElementById('toast'),
+      body: document.body, lobbyOverlay: document.getElementById('lobby-overlay'), lobbyNameInput: document.getElementById('lobby-name-input'),
+      lobbyJoinBtn: document.getElementById('lobby-join-btn'), lobbyStartBtn: document.getElementById('lobby-start-btn'), lobbyStatus: document.getElementById('lobby-status'),
+      connectionLabel: document.getElementById('connection-label'), playerBadge: document.getElementById('player-badge'),
+      opponentsRow: document.getElementById('opponents-row'), lastPlayBanner: document.getElementById('last-play-banner'), lastPlayText: document.getElementById('last-play-text'),
+      pileVisual: document.getElementById('pile-visual'), pileCount: document.getElementById('pile-count'), lastThrownCount: document.getElementById('last-thrown-count'),
+      lastPlayerName: document.getElementById('last-player-name'), declaredRankBadge: document.getElementById('declared-rank-badge'), declaredRankValue: document.getElementById('declared-rank-value'),
+      turnBanner: document.getElementById('turn-banner'), handContainer: document.getElementById('hand-container'), handCardCount: document.getElementById('hand-card-count'),
+      selectionHint: document.getElementById('selection-hint'), rankSelect: document.getElementById('rank-select'), btnPlay: document.getElementById('btn-play'),
+      btnSkip: document.getElementById('btn-skip'), btnBluff: document.getElementById('btn-bluff'), playError: document.getElementById('play-error'),
+      gameLog: document.getElementById('game-log'), logClear: document.getElementById('log-clear'), logUnreadBadge: document.getElementById('log-unread-badge'),
+      toast: document.getElementById('toast'), btnResetGame: document.getElementById('btn-reset-game'),
+      navBtns: document.querySelectorAll('.nav-btn'), tabContents: document.querySelectorAll('.tab-content')
     };
-
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then((reg) => console.log('[App] Service Worker registered, scope:', reg.scope))
-          .catch((err) => console.warn('[App] Service Worker registration failed:', err));
-      });
-    }
 
     let socket = null;
 
     function connectSocket(playerName) {
-      socket = io(SERVER_URL, {
-        auth:          { name: playerName },  
-        reconnection:  true,
-        reconnectionAttempts: Infinity,
-        reconnectionDelay:    1000,
-        reconnectionDelayMax: 8000,
-        timeout:       10000,
-        transports: ['websocket', 'polling'],
-      });
-
-      socket.on('connect', () => {
-        dom.body.classList.replace('disconnected', 'connected');
-        dom.connectionLabel.textContent = 'Live';
-        dom.lobbyStatus.textContent     = 'Connected! Waiting to join room…';
-        addLog('Connected to server.', 'system');
-      });
-
-      socket.on('disconnect', (reason) => {
-        dom.body.classList.replace('connected', 'disconnected');
-        dom.connectionLabel.textContent = 'Offline';
-        addLog(`Disconnected: ${reason}. Reconnecting…`, 'system');
-        setControlsEnabled(false);
-      });
-
-      socket.on('connect_error', (err) => {
-        dom.lobbyStatus.textContent = `Connection failed: ${err.message}`;
-        addLog(`Connection error: ${err.message}`, 'system');
-      });
-
-      socket.on('reconnect', (attempt) => {
-        addLog(`Reconnected after ${attempt} attempt(s).`, 'system');
-      });
-
+      socket = io(SERVER_URL, { auth: { name: playerName }, transports: ['websocket', 'polling'] });
+      socket.on('connect', () => { dom.body.classList.replace('disconnected', 'connected'); dom.connectionLabel.textContent = 'Live'; dom.lobbyStatus.textContent = 'Connected! Waiting...'; });
+      socket.on('disconnect', () => { dom.body.classList.replace('connected', 'disconnected'); dom.connectionLabel.textContent = 'Offline'; setControlsEnabled(false); });
       socket.on('joinedGame', ({ playerId, playerName }) => {
-        state.myId   = playerId;
-        state.myName = playerName;
-        dom.playerBadge.textContent = playerName;
-        dom.lobbyStatus.textContent = `Joined as "${playerName}" — waiting for host to start…`;
-        dom.lobbyJoinBtn.classList.add('d-none');
-        dom.lobbyNameInput.classList.add('d-none');
-        dom.lobbyStartBtn.classList.remove('d-none'); // Reveal start button!
-        addLog(`You joined as "${playerName}".`, 'system');
+        state.myId = playerId; state.myName = playerName; dom.playerBadge.textContent = playerName;
+        dom.lobbyJoinBtn.classList.add('d-none'); dom.lobbyNameInput.classList.add('d-none'); dom.lobbyStartBtn.classList.remove('d-none');
       });
-
       socket.on('updateGameState', (payload) => {
-        // Save previous pile count to calculate delta
         state.previousPileCount = state.pileCount;
-        
         Object.assign(state, payload);
-
-        // Calculate how many cards were just thrown
-        if (state.pileCount > state.previousPileCount) {
-            state.lastThrownCount = state.pileCount - state.previousPileCount;
-        } else if (state.pileCount === 0) {
-            state.lastThrownCount = null; // Pile cleared
-        }
-
+        if (state.pileCount > state.previousPileCount) state.lastThrownCount = state.pileCount - state.previousPileCount;
+        else if (state.pileCount === 0) state.lastThrownCount = null;
         state.selectedCardIndices.clear();
         renderAll();
       });
-
-      socket.on('playerTurn', ({ currentTurnId }) => {
-        state.currentTurnId = currentTurnId;
-        renderTurnBanner();
-        renderControls();
-
-        const turnPlayer = getPlayerById(currentTurnId);
-        if (turnPlayer) {
-          const label = isMyTurn() ? 'Your turn!' : `${turnPlayer.name}'s turn`;
-          addLog(label, 'turn');
-        }
-      });
-
+      socket.on('playerTurn', ({ currentTurnId }) => { state.currentTurnId = currentTurnId; renderTurnBanner(); renderControls(); });
       socket.on('gameMessage', ({ message, type = 'action' }) => {
         addLog(message, type);
-
-        // Update Last Play Banner dynamically
-        dom.lastPlayBanner.className = `lp-${type}`;
-        dom.lastPlayText.textContent = message;
-        
-        // Trigger CSS animation by removing and re-adding class
-        dom.lastPlayBanner.classList.remove('refreshed');
-        void dom.lastPlayBanner.offsetWidth; 
-        dom.lastPlayBanner.classList.add('refreshed');
-
-        if (type === 'bluff' || type === 'win') {
-          showToast(message, type === 'win' ? 'gold' : 'error');
-        }
+        dom.lastPlayBanner.className = `lp-${type}`; dom.lastPlayText.textContent = message;
+        dom.lastPlayBanner.classList.remove('refreshed'); void dom.lastPlayBanner.offsetWidth; dom.lastPlayBanner.classList.add('refreshed');
+        if (type === 'bluff' || type === 'win') showToast(message, type === 'win' ? 'gold' : 'error');
       });
-
-      socket.on('gameStarted', () => {
-        hideLobby();
-        addLog('Game started! Good luck.', 'system');
-        showToast('Game started!', 'success');
-      });
-
-      socket.on('gameOver', ({ winnerName }) => {
-        const msg = winnerName === state.myName
-          ? '🏆 You won! All your cards are gone.'
-          : `${winnerName} won the game!`;
-        addLog(msg, 'win');
-        showToast(msg, 'gold');
-        setControlsEnabled(false);
-      });
-
-      socket.on('actionError', ({ message }) => {
-        showPlayError(message);
-        showToast(message, 'error');
-      });
+      socket.on('gameStarted', () => { dom.lobbyOverlay.classList.add('hidden'); showToast('Game started!', 'success'); });
+      socket.on('gameOver', ({ winnerName }) => { showToast(winnerName === state.myName ? '🏆 You won!' : `${winnerName} won!`, 'gold'); setControlsEnabled(false); });
+      socket.on('actionError', ({ message }) => { showPlayError(message); showToast(message, 'error'); });
     }
 
-    function renderAll() {
-      renderOpponents();
-      renderPile();
-      renderTurnBanner();
-      renderHand();
-      renderControls();
-    }
+    function renderAll() { renderOpponents(); renderPile(); renderTurnBanner(); renderHand(); renderControls(); }
 
     function renderOpponents() {
       dom.opponentsRow.innerHTML = '';
-      state.players.forEach((player) => {
-        if (player.id === state.myId) return; 
+      const opps = state.players.filter(p => p.id !== state.myId);
+      const total = opps.length;
 
+      opps.forEach((player, i) => {
         const chip = document.createElement('div');
         chip.className  = 'opponent-chip' + (player.id === state.currentTurnId ? ' active-turn' : '');
-        chip.role       = 'listitem';
-        chip.innerHTML  = `
-          <span>${escapeHtml(player.name)}</span>
-          <span class="card-count" aria-label="${player.cardCount} cards">${player.cardCount}</span>
-        `;
-        if (!player.isConnected) {
-          chip.style.opacity = '0.45';
-          chip.title = 'Disconnected';
-        }
+        
+        // Dynamic Arch Math using CSS transform Y-axis push
+        const mid = (total - 1) / 2;
+        const dist = Math.abs(i - mid);
+        const pushUp = total > 1 ? (25 - (dist * 12)) : 0;
+        chip.style.transform = `translateY(${-pushUp}px)`;
+
+        chip.innerHTML  = `<div class="turn-dot"></div><span>${escapeHtml(player.name)}</span><span class="card-count">${player.cardCount}</span>`;
+        if (!player.isConnected) chip.style.opacity = '0.45';
         dom.opponentsRow.appendChild(chip);
       });
-
-      if (!dom.opponentsRow.children.length) {
-        dom.opponentsRow.innerHTML = '<span style="color:var(--text-dim);font-size:0.78rem;">Waiting for other players…</span>';
-      }
+      if (!total) dom.opponentsRow.innerHTML = '<span style="color:var(--text-dim);font-size:0.78rem;">Waiting for other players…</span>';
     }
 
     function renderPile() {
-      const count = state.pileCount;
-      dom.pileCount.textContent = count;
-      dom.pileVisual.classList.toggle('empty', count === 0);
-
-      // Render the newly calculated thrown count
+      dom.pileCount.textContent = state.pileCount;
+      dom.pileVisual.classList.toggle('empty', state.pileCount === 0);
       dom.lastThrownCount.textContent = state.lastThrownCount !== null ? state.lastThrownCount : '—';
-
-      const lastPlayer = getPlayerById(state.lastPlayerId);
-      dom.lastPlayerName.textContent = lastPlayer ? lastPlayer.name : '—';
-
-      if (state.lastDeclaredRank) {
-        dom.declaredRankBadge.classList.remove('hidden');
-        dom.declaredRankValue.textContent = formatRank(state.lastDeclaredRank);
-      } else {
-        dom.declaredRankBadge.classList.add('hidden');
-      }
+      const lp = state.players.find(p => p.id === state.lastPlayerId);
+      dom.lastPlayerName.textContent = lp ? lp.name : '—';
+      if (state.lastDeclaredRank) { dom.declaredRankBadge.classList.remove('hidden'); dom.declaredRankValue.textContent = state.lastDeclaredRank; }
+      else { dom.declaredRankBadge.classList.add('hidden'); }
     }
 
     function renderTurnBanner() {
-      if (state.phase === 'lobby') {
-        dom.turnBanner.textContent = 'Waiting for game to start…';
-        dom.turnBanner.classList.remove('your-turn');
-        return;
-      }
-
-      if (isMyTurn()) {
-        dom.turnBanner.textContent = '✨ Your turn — select cards and declare a rank, or call bluff!';
-        dom.turnBanner.classList.add('your-turn');
-      } else {
-        const player = getPlayerById(state.currentTurnId);
-        dom.turnBanner.textContent = player ? `${player.name}'s turn…` : 'Waiting…';
-        dom.turnBanner.classList.remove('your-turn');
-      }
+      if (state.phase === 'lobby') { dom.turnBanner.textContent = 'Waiting for game to start…'; dom.turnBanner.classList.remove('your-turn'); return; }
+      if (isMyTurn()) { dom.turnBanner.textContent = '✨ Your turn — play cards or call bluff!'; dom.turnBanner.classList.add('your-turn'); }
+      else { const p = state.players.find(x => x.id === state.currentTurnId); dom.turnBanner.textContent = p ? `${p.name}'s turn…` : 'Waiting…'; dom.turnBanner.classList.remove('your-turn'); }
     }
 
     function renderHand() {
       dom.handContainer.innerHTML = '';
-
       state.myHand.forEach((card, idx) => {
         const el = document.createElement('div');
-        el.className   = 'card' + (state.selectedCardIndices.has(idx) ? ' selected' : '');
-        el.role        = 'listitem';
-        el.tabIndex    = 0;
-        el.dataset.idx  = idx;
-        el.dataset.suit = card.suit;
-        el.setAttribute('aria-label', `${card.rank} of ${card.suit}${state.selectedCardIndices.has(idx) ? ', selected' : ''}`);
-        el.setAttribute('aria-pressed', state.selectedCardIndices.has(idx).toString());
-        el.innerHTML = `
-          <div class="card-corner top-left">
-            <span class="card-rank">${escapeHtml(card.rank)}</span>
-            <span class="card-suit">${card.suit}</span>
-          </div>
-          <div class="card-center" aria-hidden="true">${card.suit}</div>
-          <div class="card-corner bot-right">
-            <span class="card-rank">${escapeHtml(card.rank)}</span>
-            <span class="card-suit">${card.suit}</span>
-          </div>
-        `;
-        el.addEventListener('click',   () => toggleCardSelection(idx));
-        el.addEventListener('keydown', (e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            toggleCardSelection(idx);
-          }
+        el.className = 'card' + (state.selectedCardIndices.has(idx) ? ' selected' : '');
+        el.dataset.idx = idx; el.dataset.suit = card.suit;
+        el.innerHTML = `<div class="card-corner top-left"><span class="card-rank">${escapeHtml(card.rank)}</span><span class="card-suit">${card.suit}</span></div><div class="card-center">${card.suit}</div><div class="card-corner bot-right"><span class="card-rank">${escapeHtml(card.rank)}</span><span class="card-suit">${card.suit}</span></div>`;
+        el.addEventListener('click', () => {
+          if (state.selectedCardIndices.has(idx)) state.selectedCardIndices.delete(idx); else state.selectedCardIndices.add(idx);
+          el.classList.toggle('selected', state.selectedCardIndices.has(idx));
+          const n = state.selectedCardIndices.size;
+          dom.selectionHint.textContent = n > 0 ? `${n} card(s) selected` : '';
+          renderControls();
         });
         dom.handContainer.appendChild(el);
       });
-
-      const count = state.myHand.length;
-      dom.handCardCount.textContent = `${count} card${count !== 1 ? 's' : ''}`;
-      updateSelectionHint();
+      dom.handCardCount.textContent = `${state.myHand.length} cards`;
     }
 
     function renderControls() {
-      const myTurn    = isMyTurn() && state.phase === 'playing';
-      const hasSel    = state.selectedCardIndices.size > 0;
-      const hasRank   = dom.rankSelect.value !== '';
-      const canPlay   = myTurn && hasSel && hasRank;
-      const canBluff  = myTurn && state.pileCount > 0 && state.selectedCardIndices.size === 0;
-
-      dom.btnPlay.disabled  = !canPlay;
-      dom.btnSkip.disabled  = !myTurn;
-      dom.btnBluff.disabled = !myTurn || state.pileCount === 0;
-
+      if (state.lastDeclaredRank) { dom.rankSelect.value = state.lastDeclaredRank; dom.rankSelect.disabled = true; }
+      else { dom.rankSelect.disabled = false; }
+      const myTurn = isMyTurn() && state.phase === 'playing';
+      const canPlay = myTurn && state.selectedCardIndices.size > 0 && dom.rankSelect.value !== '';
+      dom.btnPlay.disabled = !canPlay; dom.btnSkip.disabled = !myTurn; dom.btnBluff.disabled = !myTurn || state.pileCount === 0;
       if (canPlay) clearPlayError();
     }
 
     function showPlayError(msg) { dom.playError.textContent = msg ? `⚠ ${msg}` : ''; }
     function clearPlayError() { dom.playError.textContent = ''; }
+    function setControlsEnabled(en) { dom.btnPlay.disabled = !en; dom.btnSkip.disabled = !en; dom.btnBluff.disabled = !en; if(!en) dom.rankSelect.disabled=true; }
+    function isMyTurn() { return state.currentTurnId === state.myId; }
+    function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;'); }
 
-    function setControlsEnabled(enabled) {
-      dom.btnPlay.disabled  = !enabled;
-      dom.btnSkip.disabled  = !enabled;
-      dom.btnBluff.disabled = !enabled;
+    function switchTab(targetId) {
+      dom.tabContents.forEach(el => el.classList.remove('active'));
+      dom.navBtns.forEach(el => el.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+      document.querySelector(`.nav-btn[data-target="${targetId}"]`).classList.add('active');
+      if (targetId === 'tab-log') { dom.logUnreadBadge.classList.remove('visible'); dom.logUnreadBadge.textContent = '0'; }
     }
 
-    function updateSelectionHint() {
-      const n = state.selectedCardIndices.size;
-      dom.selectionHint.textContent = n > 0
-        ? `${n} card${n > 1 ? 's' : ''} selected — choose a rank and play`
-        : '';
-    }
-
-    function hideLobby() {
-      dom.lobbyOverlay.classList.add('hidden');
-    }
-
-    function toggleCardSelection(idx) {
-      if (state.selectedCardIndices.has(idx)) {
-        state.selectedCardIndices.delete(idx);
-      } else {
-        state.selectedCardIndices.add(idx);
-      }
-      const cardEl = dom.handContainer.querySelector(`[data-idx="${idx}"]`);
-      if (cardEl) {
-        const selected = state.selectedCardIndices.has(idx);
-        cardEl.classList.toggle('selected', selected);
-        cardEl.setAttribute('aria-pressed', selected.toString());
-      }
-      updateSelectionHint();
-      renderControls();
-      clearPlayError();
-    }
-
-    function handlePlay() {
-      const selectedIndices = [...state.selectedCardIndices];
-      const declaredRank    = dom.rankSelect.value;
-
-      if (selectedIndices.length === 0) {
-        showPlayError('Select at least one card to play.');
-        return;
-      }
-      if (!declaredRank) {
-        showPlayError('Choose the rank you are declaring.');
-        return;
-      }
-      if (!isMyTurn()) {
-        showPlayError('It is not your turn.');
-        return;
-      }
-
-      clearPlayError();
-      const cardsToPlay = selectedIndices.map((i) => state.myHand[i]);
-
-      socket.emit('playCards', {
-        cards:        cardsToPlay,
-        declaredRank: declaredRank,
-      });
-
-      state.selectedCardIndices.clear();
-      dom.rankSelect.value = '';
-      renderControls();
-    }
-
-    function handleCallBluff() {
-      if (!isMyTurn()) {
-        showPlayError('It is not your turn to call bluff.');
-        return;
-      }
-      if (state.pileCount === 0) {
-        showPlayError('There are no cards in the pile to challenge.');
-        return;
-      }
-      clearPlayError();
-      socket.emit('callBluff');
-    }
-
-    function handleSkip() {
-      if (!isMyTurn()) return;
-      clearPlayError();
-      socket.emit('skipTurn');
-    }
-
-    function handleJoinGame() {
-      const name = dom.lobbyNameInput.value.trim();
-      if (!name) {
-        dom.lobbyNameInput.focus();
-        dom.lobbyStatus.textContent = 'Please enter a display name.';
-        return;
-      }
-
-      dom.lobbyJoinBtn.disabled    = true;
-      dom.lobbyStatus.innerHTML    = 'Connecting… <span class="dot-pulse"><span></span><span></span><span></span></span>';
-
-      connectSocket(name);
-
-      socket.once('connect', () => {
-        socket.emit('joinGame', { name });
-      });
-    }
-
-    function handleStartGame() {
-      socket.emit('startGame');
-      dom.lobbyStartBtn.disabled = true;
-      dom.lobbyStartBtn.textContent = 'Starting...';
-    }
-
-    function openLogModal() {
-        dom.logModalBackdrop.classList.add('open');
-        dom.logUnreadBadge.classList.remove('visible');
-        dom.logUnreadBadge.textContent = '0';
-    }
-
-    function closeLogModal() {
-        dom.logModalBackdrop.classList.remove('open');
-    }
-
-    function addLog(message, type = 'action') {
-      const entry = document.createElement('div');
-      entry.className = `log-entry log-${type}`;
-      const now = new Date();
-      const ts  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    function addLog(message, type) {
+      const entry = document.createElement('div'); entry.className = `log-entry log-${type}`;
+      const d = new Date(); const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
       entry.innerHTML = `<span class="log-timestamp">${ts}</span>${escapeHtml(message)}`;
-      dom.gameLog.appendChild(entry);
-      dom.gameLog.scrollTop = dom.gameLog.scrollHeight;
-
-      // Update unread badge if modal is closed
-      if (!dom.logModalBackdrop.classList.contains('open')) {
-        let currentCount = parseInt(dom.logUnreadBadge.textContent || '0', 10);
-        dom.logUnreadBadge.textContent = currentCount + 1;
-        dom.logUnreadBadge.classList.add('visible');
+      dom.gameLog.appendChild(entry); dom.gameLog.scrollTop = dom.gameLog.scrollHeight;
+      if (!document.getElementById('tab-log').classList.contains('active')) {
+        let c = parseInt(dom.logUnreadBadge.textContent || '0'); dom.logUnreadBadge.textContent = c + 1; dom.logUnreadBadge.classList.add('visible');
       }
     }
 
     let toastTimer = null;
-    function showToast(message, variant = '') {
-      clearTimeout(toastTimer);
-      dom.toast.textContent = message;
-      dom.toast.className   = `show${variant ? ` toast-${variant}` : ''}`;
-      toastTimer = setTimeout(() => {
-        dom.toast.classList.remove('show');
-      }, TOAST_DURATION_MS);
-    }
-
-    function getPlayerById(id) { return state.players.find((p) => p.id === id) ?? null; }
-    function isMyTurn() { return state.currentTurnId === state.myId; }
-    function formatRank(rank) {
-      const names = { A: 'Ace', J: 'Jack', Q: 'Queen', K: 'King' };
-      return names[rank] ?? rank;
-    }
-    function escapeHtml(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+    function showToast(msg, variant = '') {
+      clearTimeout(toastTimer); dom.toast.textContent = msg; dom.toast.className = `show${variant ? ` toast-${variant}` : ''}`;
+      toastTimer = setTimeout(() => dom.toast.classList.remove('show'), TOAST_DURATION_MS);
     }
 
     (function init() {
-      dom.lobbyJoinBtn.addEventListener('click', handleJoinGame);
-      dom.lobbyNameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') handleJoinGame();
+      dom.lobbyJoinBtn.addEventListener('click', () => {
+        const name = dom.lobbyNameInput.value.trim(); if (!name) return;
+        dom.lobbyJoinBtn.disabled = true; dom.lobbyStatus.textContent = 'Connecting...';
+        connectSocket(name); socket.once('connect', () => socket.emit('joinGame', { name }));
       });
-      dom.lobbyStartBtn.addEventListener('click', handleStartGame); 
-
-      dom.btnPlay.addEventListener('click', handlePlay);
-      dom.btnSkip.addEventListener('click', handleSkip);
-      dom.btnBluff.addEventListener('click', handleCallBluff);
-
-      dom.rankSelect.addEventListener('change', () => {
-        clearPlayError();
-        renderControls();
+      dom.lobbyStartBtn.addEventListener('click', () => socket.emit('startGame'));
+      dom.btnPlay.addEventListener('click', () => {
+        if (!isMyTurn() || state.selectedCardIndices.size === 0 || !dom.rankSelect.value) return showPlayError('Invalid play');
+        socket.emit('playCards', { cards: [...state.selectedCardIndices].map(i => state.myHand[i]), declaredRank: dom.rankSelect.value });
+        state.selectedCardIndices.clear(); if (!state.lastDeclaredRank) dom.rankSelect.value = ''; renderControls();
       });
-
-      dom.btnViewLog.addEventListener('click', openLogModal);
-      dom.logModalClose.addEventListener('click', closeLogModal);
-
-      dom.logClear.addEventListener('click', () => {
-        dom.gameLog.innerHTML = '';
-        addLog('Log cleared.', 'system');
-      });
-
-      addLog('Welcome to Bluff. Enter your name and join the game!', 'system');
+      dom.btnSkip.addEventListener('click', () => socket.emit('skipTurn'));
+      dom.btnBluff.addEventListener('click', () => socket.emit('callBluff'));
+      dom.rankSelect.addEventListener('change', renderControls);
+      dom.navBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.target)));
+      dom.logClear.addEventListener('click', () => { dom.gameLog.innerHTML = ''; addLog('Log cleared.', 'system'); });
+      dom.btnResetGame.addEventListener('click', () => { if(confirm("Are you sure you want to end the current game and deal new cards to everyone?")) socket.emit('resetGame'); });
     })();
-
   </script>
 </body>
 </html>
