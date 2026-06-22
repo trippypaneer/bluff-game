@@ -14,11 +14,6 @@
 
   <title>Bluff — Multiplayer Card Game</title>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       STYLES
-       Design language: deep casino felt, aged gold accents, sharp card whites.
-       All colours live in CSS custom properties so theming is one-place.
-       ═══════════════════════════════════════════════════════════════════════ -->
   <style>
     /* ── Design tokens ──────────────────────────────────────────────────── */
     :root {
@@ -77,18 +72,18 @@
       line-height: 1.4;
       display: flex;
       flex-direction: column;
-      /* Safe area insets for iPhone notch / home indicator */
       padding-top:    env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
       padding-left:   env(safe-area-inset-left);
       padding-right:  env(safe-area-inset-right);
     }
 
-    /* ── Utility classes ────────────────────────────────────────────────── */
     .visually-hidden {
       position: absolute; width: 1px; height: 1px;
       overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
     }
+    
+    .d-none { display: none !important; }
 
     /* ══════════════════════════════════════════════════════════════════════
        HEADER
@@ -115,7 +110,6 @@
       user-select: none;
     }
 
-    /* Connection status pill */
     #connection-status {
       display: flex;
       align-items: center;
@@ -137,13 +131,11 @@
       transition: background var(--t-mid), box-shadow var(--t-mid);
     }
 
-    /* Status states — toggled via JS by adding a class to <body> */
     body.connected    #connection-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
     body.connected    #connection-status { color: var(--accent-green); }
     body.disconnected #connection-dot { background: var(--accent-red);  box-shadow: 0 0 6px var(--accent-red);   }
     body.disconnected #connection-status { color: var(--accent-red);  }
 
-    /* Current player badge */
     #player-badge {
       font-size: 0.72rem;
       color: var(--text-muted);
@@ -153,9 +145,6 @@
       white-space: nowrap;
     }
 
-    /* ══════════════════════════════════════════════════════════════════════
-       MAIN LAYOUT — scrollable viewport below the fixed header
-       ══════════════════════════════════════════════════════════════════════ */
     #app {
       flex: 1;
       overflow-y: auto;
@@ -163,7 +152,6 @@
       display: flex;
       flex-direction: column;
       gap: 0;
-      /* Momentum scrolling on iOS */
       -webkit-overflow-scrolling: touch;
     }
 
@@ -179,14 +167,12 @@
       gap: 14px;
       position: relative;
       border-bottom: 1px solid var(--border-subtle);
-      /* Subtle felt texture via repeating gradient */
       background-image:
         repeating-linear-gradient(0deg,   rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 6px),
         repeating-linear-gradient(90deg,  rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 6px),
         radial-gradient(ellipse at 50% 40%, #1a3228 0%, #0d1e18 60%, #080f0c 100%);
     }
 
-    /* Opponents row */
     #opponents-row {
       width: 100%;
       display: flex;
@@ -209,7 +195,6 @@
       transition: border-color var(--t-fast), color var(--t-fast);
     }
 
-    /* Highlight the active player's chip */
     .opponent-chip.active-turn {
       border-color: var(--accent-gold);
       color: var(--accent-gold);
@@ -224,7 +209,6 @@
       color: var(--text-primary);
     }
 
-    /* Central pile container */
     #pile-area {
       display: flex;
       flex-direction: column;
@@ -233,7 +217,6 @@
       position: relative;
     }
 
-    /* Stacked deck visual — CSS-only multiple card stack */
     #pile-visual {
       position: relative;
       width:  var(--card-w);
@@ -241,7 +224,6 @@
       margin-bottom: 4px;
     }
 
-    /* Each "ghost card" in the stack is a pseudo-positioned div */
     .pile-card {
       position: absolute;
       width: var(--card-w);
@@ -256,7 +238,6 @@
     .pile-card:nth-child(2) { transform: rotate( 2deg)  translate( 2px, -1px); }
     .pile-card:nth-child(3) { transform: rotate(-1deg)  translate(-1px,  1px); z-index: 3; }
 
-    /* Diamond pattern on card back */
     .pile-card::after {
       content: '';
       position: absolute;
@@ -271,12 +252,10 @@
       );
     }
 
-    /* "Empty pile" state */
     #pile-visual.empty .pile-card {
       opacity: 0.25;
     }
 
-    /* Pile info row */
     #pile-info {
       display: flex;
       gap: 12px;
@@ -311,7 +290,6 @@
       background: var(--border-subtle);
     }
 
-    /* Declared rank badge */
     #declared-rank-badge {
       padding: 4px 14px;
       border-radius: 24px;
@@ -326,7 +304,6 @@
 
     #declared-rank-badge.hidden { opacity: 0; pointer-events: none; }
 
-    /* Turn indicator banner */
     #turn-banner {
       width: 100%;
       max-width: 380px;
@@ -381,7 +358,6 @@
       border-radius: 12px;
     }
 
-    /* Horizontally scrollable hand area */
     #hand-container {
       display: flex;
       gap: 8px;
@@ -389,13 +365,12 @@
       overflow-x: auto;
       overflow-y: visible;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;            /* Firefox */
+      scrollbar-width: none;
       scroll-padding-left: 16px;
     }
 
-    #hand-container::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+    #hand-container::-webkit-scrollbar { display: none; }
 
-    /* Selection helper message */
     #selection-hint {
       padding: 0 16px;
       font-size: 0.72rem;
@@ -403,7 +378,6 @@
       min-height: 16px;
     }
 
-    /* ── Playing card ───────────────────────────────────────────────────── */
     .card {
       flex-shrink: 0;
       width:   var(--card-w);
@@ -423,14 +397,12 @@
       outline: none;
     }
 
-    /* Lift + gold border when selected */
     .card.selected {
       transform: translateY(-12px) scale(1.04);
       border-color: var(--accent-gold);
       box-shadow: var(--shadow-card), 0 0 0 2px var(--accent-gold), 0 12px 24px rgba(0,0,0,0.6);
     }
 
-    /* Reduced motion: disable the springy lift */
     @media (prefers-reduced-motion: reduce) {
       .card, .card.selected { transition: border-color var(--t-fast); }
       .card.selected { transform: none; }
@@ -441,7 +413,6 @@
       outline-offset: 2px;
     }
 
-    /* Rank + suit at corners */
     .card-corner {
       position: absolute;
       display: flex;
@@ -465,7 +436,6 @@
       line-height: 1;
     }
 
-    /* Suit colours */
     .card[data-suit="♥"] .card-rank,
     .card[data-suit="♥"] .card-suit,
     .card[data-suit="♦"] .card-rank,
@@ -476,7 +446,6 @@
     .card[data-suit="♣"] .card-rank,
     .card[data-suit="♣"] .card-suit { color: #1a1a1a; }
 
-    /* Centre suit pip */
     .card-center {
       position: absolute;
       inset: 0;
@@ -488,7 +457,6 @@
       pointer-events: none;
     }
 
-    /* Checkmark overlay when selected */
     .card::after {
       content: '✓';
       position: absolute;
@@ -507,7 +475,6 @@
 
     .card.selected::after { opacity: 1; }
 
-    /* ── Empty hand placeholder ── */
     #hand-empty {
       display: none;
       padding: 20px 16px;
@@ -530,14 +497,12 @@
       border-bottom: 1px solid var(--border-subtle);
     }
 
-    /* Declare row: rank selector + play button side by side */
     #declare-row {
       display: flex;
       gap: 10px;
       align-items: stretch;
     }
 
-    /* Rank select dropdown */
     #rank-select {
       flex: 1;
       appearance: none;
@@ -567,7 +532,6 @@
       color: var(--text-primary);
     }
 
-    /* Primary action: play */
     #btn-play {
       flex-shrink: 0;
       padding: 0 20px;
@@ -581,7 +545,7 @@
       cursor: pointer;
       white-space: nowrap;
       transition: opacity var(--t-fast), transform var(--t-fast);
-      min-height: 44px;    /* touch target */
+      min-height: 44px;
     }
 
     #btn-play:disabled {
@@ -592,7 +556,6 @@
 
     #btn-play:not(:disabled):active { transform: scale(0.97); }
 
-    /* Secondary actions row */
     #secondary-row {
       display: flex;
       gap: 10px;
@@ -634,7 +597,6 @@
       border-color: rgba(255,255,255,0.14);
     }
 
-    /* Validation error message */
     #play-error {
       font-size: 0.74rem;
       color: var(--accent-red);
@@ -691,7 +653,6 @@
     #game-log::-webkit-scrollbar-track { background: transparent; }
     #game-log::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
 
-    /* ── Log entry types ── */
     .log-entry {
       font-size: 0.80rem;
       line-height: 1.4;
@@ -800,12 +761,28 @@
     #lobby-join-btn:hover  { opacity: 0.88; }
     #lobby-join-btn:active { transform: scale(0.98); }
 
+    /* New Start Button Styling */
+    #lobby-start-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--accent-green) 0%, #219653 100%);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-inverse);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: opacity var(--t-fast), transform var(--t-fast);
+    }
+    #lobby-start-btn:hover  { opacity: 0.88; }
+    #lobby-start-btn:active { transform: scale(0.98); }
+
     #lobby-status {
       font-size: 0.75rem;
       color: var(--text-dim);
     }
 
-    /* Pulsing "waiting" dots */
     .dot-pulse {
       display: inline-flex;
       gap: 4px;
@@ -825,7 +802,6 @@
       40%            { opacity: 1;   transform: scale(1);   }
     }
 
-    /* ── Toast notification ── */
     #toast {
       position: fixed;
       bottom: calc(env(safe-area-inset-bottom) + 16px);
@@ -853,7 +829,6 @@
     #toast.toast-success{ border-color: rgba(46,204,113,0.5); color: #4cba6f; }
     #toast.toast-gold   { border-color: var(--border-gold); color: var(--accent-gold); }
 
-    /* ── Responsive tweaks for wider screens ── */
     @media (min-width: 520px) {
       :root { --card-w: 72px; --card-h: 100px; }
       #game-table { padding: 24px 24px 28px; }
@@ -864,9 +839,6 @@
 </head>
 <body class="disconnected">
 
-  <!-- ═══════════════════════════════════════════
-       LOBBY OVERLAY (shown until game starts)
-  ════════════════════════════════════════════ -->
   <div id="lobby-overlay" role="dialog" aria-modal="true" aria-labelledby="lobby-title">
     <div id="lobby-card">
       <h1 id="lobby-title">BLUFF</h1>
@@ -885,13 +857,11 @@
         spellcheck="false"
       />
       <button id="lobby-join-btn" type="button">Join Game</button>
+      <button id="lobby-start-btn" type="button" class="d-none">Start Game (Need 2+ Players)</button>
       <p id="lobby-status">Connecting to server…</p>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       HEADER
-  ════════════════════════════════════════════ -->
   <header id="header" role="banner">
     <h1 id="header-title">♠ BLUFF</h1>
     <span id="player-badge" aria-label="Your name"></span>
@@ -901,20 +871,11 @@
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════
-       MAIN APP
-  ════════════════════════════════════════════ -->
   <main id="app" role="main">
 
-    <!-- ── Game table ── -->
     <section id="game-table" aria-label="Game table">
+      <div id="opponents-row" role="list" aria-label="Other players"></div>
 
-      <!-- Opponents row -->
-      <div id="opponents-row" role="list" aria-label="Other players">
-        <!-- Opponent chips injected by JS -->
-      </div>
-
-      <!-- Central pile -->
       <div id="pile-area">
         <div id="pile-visual" aria-hidden="true">
           <div class="pile-card"></div>
@@ -939,26 +900,18 @@
         </div>
       </div>
 
-      <!-- Turn indicator -->
       <div id="turn-banner" role="status" aria-live="polite">
         Waiting for game to start…
       </div>
     </section>
 
-    <!-- ── Player hand ── -->
     <section id="hand-section" aria-label="Your hand">
       <div id="hand-section-header">
         <span class="section-label">Your Hand</span>
         <span id="hand-card-count" aria-live="polite">0 cards</span>
       </div>
 
-      <div
-        id="hand-container"
-        role="list"
-        aria-label="Cards in your hand — tap to select"
-      >
-        <!-- Card elements injected by JS -->
-      </div>
+      <div id="hand-container" role="list" aria-label="Cards in your hand — tap to select"></div>
 
       <p id="hand-empty" aria-live="polite">
         Your hand is empty. You've played all your cards!
@@ -967,10 +920,7 @@
       <p id="selection-hint" aria-live="polite"></p>
     </section>
 
-    <!-- ── Control panel ── -->
     <section id="control-panel" aria-label="Game controls">
-
-      <!-- Declare rank + play -->
       <div id="declare-row">
         <label for="rank-select" class="visually-hidden">Declare rank</label>
         <select id="rank-select" aria-label="Rank to declare">
@@ -995,10 +945,8 @@
         </button>
       </div>
 
-      <!-- Validation message -->
       <p id="play-error" role="alert" aria-live="assertive"></p>
 
-      <!-- Secondary actions -->
       <div id="secondary-row">
         <button id="btn-skip"  class="btn-secondary" type="button" disabled>
           Skip Turn
@@ -1007,96 +955,47 @@
           🎭 Call Bluff!
         </button>
       </div>
-
     </section>
 
-    <!-- ── Game log ── -->
     <section id="log-section" aria-label="Game log">
       <div id="log-header">
         <span class="section-label">Game Log</span>
         <button id="log-clear" type="button" aria-label="Clear log">Clear</button>
       </div>
-      <div id="game-log" role="log" aria-live="polite" aria-atomic="false">
-        <!-- Log entries injected by JS -->
-      </div>
+      <div id="game-log" role="log" aria-live="polite" aria-atomic="false"></div>
     </section>
 
   </main>
 
-  <!-- Toast notification (aria-live so screen readers pick it up) -->
   <div id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       SOCKET.IO CLIENT LIBRARY
-       Replace the src with your server's Socket.io CDN path if self-hosting,
-       or leave as-is — the client script tag is intentionally kept separate
-       from the server URL so both can be swapped independently.
-       ═══════════════════════════════════════════════════════════════════════ -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
 
   <script>
-    /* ════════════════════════════════════════════════════════════════════════
-       BLUFF MULTIPLAYER — CLIENT APPLICATION
-       ────────────────────────────────────────────────────────────────────────
-       Architecture
-       ─────────────
-       1. CONFIG          — server URL and tunable constants
-       2. STATE           — single source of truth for all runtime data
-       3. DOM CACHE       — all element references gathered once
-       4. SERVICE WORKER  — registration
-       5. SOCKET          — initialisation & event handlers
-       6. UI UPDATERS     — pure functions that write to the DOM from state
-       7. USER ACTIONS    — event handlers for buttons / card clicks
-       8. UTILITIES       — toast, log, helpers
-       9. INIT            — bootstrap
-       ════════════════════════════════════════════════════════════════════════ */
-
-    /* ── 1. CONFIG ───────────────────────────────────────────────────────── */
-
-    /**
-     * Replace this with your actual backend URL before deploying.
-     * Examples:
-     *   'http://localhost:3000'
-     *   'https://bluff-server.example.com'
-     */
     const SERVER_URL = 'https://bluff-backend-abje.onrender.com';
-
-    /** All card ranks in standard order */
     const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-
-    /** All suits as Unicode glyphs */
     const SUITS = ['♠','♥','♦','♣'];
-
-    /** Duration (ms) to keep toast messages visible */
     const TOAST_DURATION_MS = 3000;
 
-    /* ── 2. STATE ────────────────────────────────────────────────────────── */
-
     const state = {
-      /* My identity (assigned by server after joinGame) */
       myId:       null,
       myName:     null,
-
-      /* Current game snapshot from the server */
-      players:           [],   // Array<{ id, name, cardCount, isConnected }>
-      myHand:            [],   // Array<{ rank, suit }> — only sent to this client
+      players:           [],   
+      myHand:            [],   
       pileCount:         0,
-      lastDeclaredRank:  null, // string | null
-      lastPlayerId:      null, // id of the player who made the last play
-      currentTurnId:     null, // id of player whose turn it is
-      phase:             'lobby', // 'lobby' | 'playing' | 'ended'
-
-      /* Local selection tracked by client only */
-      selectedCardIndices: new Set(),  // Set<number> — indices into myHand[]
+      lastDeclaredRank:  null, 
+      lastPlayerId:      null, 
+      currentTurnId:     null, 
+      phase:             'lobby', 
+      selectedCardIndices: new Set(),  
     };
-
-    /* ── 3. DOM CACHE ────────────────────────────────────────────────────── */
 
     const dom = {
       body:              document.body,
       lobbyOverlay:      document.getElementById('lobby-overlay'),
       lobbyNameInput:    document.getElementById('lobby-name-input'),
       lobbyJoinBtn:      document.getElementById('lobby-join-btn'),
+      lobbyStartBtn:     document.getElementById('lobby-start-btn'),
       lobbyStatus:       document.getElementById('lobby-status'),
 
       connectionLabel:   document.getElementById('connection-label'),
@@ -1127,57 +1026,31 @@
       toast:             document.getElementById('toast'),
     };
 
-    /* ── 4. SERVICE WORKER REGISTRATION ─────────────────────────────────── */
-
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then((reg) => {
-            console.log('[App] Service Worker registered, scope:', reg.scope);
-          })
-          .catch((err) => {
-            console.warn('[App] Service Worker registration failed:', err);
-          });
+          .then((reg) => console.log('[App] Service Worker registered, scope:', reg.scope))
+          .catch((err) => console.warn('[App] Service Worker registration failed:', err));
       });
     }
 
-    /* ── 5. SOCKET INITIALISATION & EVENT HANDLERS ───────────────────────── */
-
-    /**
-     * The socket is intentionally not connected on page-load.
-     * We wait until the user clicks "Join Game" so we can pass the player's
-     * name as auth metadata on the initial handshake.
-     *
-     * @type {import("socket.io-client").Socket | null}
-     */
     let socket = null;
 
-    /**
-     * Connect to the game server and wire up all socket event listeners.
-     * Called once when the player submits the lobby form.
-     *
-     * @param {string} playerName
-     */
     function connectSocket(playerName) {
       socket = io(SERVER_URL, {
-        auth:          { name: playerName },  // passed to server's io.use() middleware
+        auth:          { name: playerName },  
         reconnection:  true,
         reconnectionAttempts: Infinity,
         reconnectionDelay:    1000,
         reconnectionDelayMax: 8000,
         timeout:       10000,
-        // Transports: prefer WebSocket, fall back to HTTP long-polling.
-        // The Service Worker is configured to BYPASS /socket.io/* paths so
-        // neither transport is ever intercepted.
         transports: ['websocket', 'polling'],
       });
-
-      /* ── Connection lifecycle ── */
 
       socket.on('connect', () => {
         dom.body.classList.replace('disconnected', 'connected');
         dom.connectionLabel.textContent = 'Live';
-        dom.lobbyStatus.textContent     = 'Connected! Waiting for the host to start…';
+        dom.lobbyStatus.textContent     = 'Connected! Waiting to join room…';
         addLog('Connected to server.', 'system');
       });
 
@@ -1197,50 +1070,23 @@
         addLog(`Reconnected after ${attempt} attempt(s).`, 'system');
       });
 
-      /* ── Server → Client game events ── */
-
-      /**
-       * 'joinedGame' — server acknowledges our join and assigns our ID.
-       * Payload: { playerId: string, playerName: string }
-       */
       socket.on('joinedGame', ({ playerId, playerName }) => {
         state.myId   = playerId;
         state.myName = playerName;
         dom.playerBadge.textContent = playerName;
-        dom.lobbyStatus.textContent = `Joined as "${playerName}" — waiting for game to start…`;
+        dom.lobbyStatus.textContent = `Joined as "${playerName}" — waiting for host to start…`;
+        dom.lobbyJoinBtn.classList.add('d-none');
+        dom.lobbyNameInput.classList.add('d-none');
+        dom.lobbyStartBtn.classList.remove('d-none'); // Show the start button!
         addLog(`You joined as "${playerName}".`, 'system');
       });
 
-      /**
-       * 'updateGameState' — full state sync sent after every meaningful
-       * action (card played, bluff called, turn advanced, player joins/leaves).
-       *
-       * Expected payload shape:
-       * {
-       *   players: Array<{ id: string, name: string, cardCount: number, isConnected: boolean }>,
-       *   myHand:  Array<{ rank: string, suit: string }>,
-       *   pileCount: number,
-       *   lastDeclaredRank: string | null,
-       *   lastPlayerId: string | null,
-       *   currentTurnId: string | null,
-       *   phase: 'lobby' | 'playing' | 'ended',
-       * }
-       */
       socket.on('updateGameState', (payload) => {
-        // Merge server payload into local state
         Object.assign(state, payload);
-        // Clear selection whenever the state refreshes (turn changed, etc.)
         state.selectedCardIndices.clear();
-        // Re-render the entire UI from the new state
         renderAll();
       });
 
-      /**
-       * 'playerTurn' — lightweight notification that it's a specific player's turn.
-       * Payload: { currentTurnId: string }
-       * (A full updateGameState usually follows, but this arrives first for
-       *  low-latency turn announcements.)
-       */
       socket.on('playerTurn', ({ currentTurnId }) => {
         state.currentTurnId = currentTurnId;
         renderTurnBanner();
@@ -1253,32 +1099,19 @@
         }
       });
 
-      /**
-       * 'gameMessage' — human-readable event broadcast to all clients.
-       * Payload: { message: string, type: 'action'|'bluff'|'truth'|'system'|'win' }
-       */
       socket.on('gameMessage', ({ message, type = 'action' }) => {
         addLog(message, type);
-        // Surface high-value events as toasts too
         if (type === 'bluff' || type === 'win') {
           showToast(message, type === 'win' ? 'gold' : 'error');
         }
       });
 
-      /**
-       * 'gameStarted' — server signals the game has moved from lobby to playing.
-       * Payload: (none required — a full updateGameState follows)
-       */
       socket.on('gameStarted', () => {
         hideLobby();
         addLog('Game started! Good luck.', 'system');
         showToast('Game started!', 'success');
       });
 
-      /**
-       * 'gameOver' — one player has won.
-       * Payload: { winnerId: string, winnerName: string }
-       */
       socket.on('gameOver', ({ winnerName }) => {
         const msg = winnerName === state.myName
           ? '🏆 You won! All your cards are gone.'
@@ -1288,20 +1121,12 @@
         setControlsEnabled(false);
       });
 
-      /**
-       * 'actionError' — server rejected an action (e.g. not your turn,
-       * invalid card count). Show an inline error without crashing the UI.
-       * Payload: { message: string }
-       */
       socket.on('actionError', ({ message }) => {
         showPlayError(message);
         showToast(message, 'error');
       });
     }
 
-    /* ── 6. UI UPDATERS ─────────────────────────────────────────────────── */
-
-    /** Re-render every part of the UI from current state */
     function renderAll() {
       renderOpponents();
       renderPile();
@@ -1310,11 +1135,10 @@
       renderControls();
     }
 
-    /** Render opponent chips in the opponents row */
     function renderOpponents() {
       dom.opponentsRow.innerHTML = '';
       state.players.forEach((player) => {
-        if (player.id === state.myId) return; // skip self
+        if (player.id === state.myId) return; 
 
         const chip = document.createElement('div');
         chip.className  = 'opponent-chip' + (player.id === state.currentTurnId ? ' active-turn' : '');
@@ -1330,23 +1154,19 @@
         dom.opponentsRow.appendChild(chip);
       });
 
-      // Fallback if no opponents yet
       if (!dom.opponentsRow.children.length) {
         dom.opponentsRow.innerHTML = '<span style="color:var(--text-dim);font-size:0.78rem;">Waiting for other players…</span>';
       }
     }
 
-    /** Render the central pile display */
     function renderPile() {
       const count = state.pileCount;
       dom.pileCount.textContent = count;
       dom.pileVisual.classList.toggle('empty', count === 0);
 
-      // Last player display
       const lastPlayer = getPlayerById(state.lastPlayerId);
       dom.lastPlayerName.textContent = lastPlayer ? lastPlayer.name : '—';
 
-      // Declared rank badge
       if (state.lastDeclaredRank) {
         dom.declaredRankBadge.classList.remove('hidden');
         dom.declaredRankValue.textContent = formatRank(state.lastDeclaredRank);
@@ -1355,7 +1175,6 @@
       }
     }
 
-    /** Render the turn indicator banner */
     function renderTurnBanner() {
       if (state.phase === 'lobby') {
         dom.turnBanner.textContent = 'Waiting for game to start…';
@@ -1373,7 +1192,6 @@
       }
     }
 
-    /** Render the player's hand of cards */
     function renderHand() {
       dom.handContainer.innerHTML = '';
 
@@ -1397,7 +1215,6 @@
             <span class="card-suit">${card.suit}</span>
           </div>
         `;
-        // Click: toggle selection
         el.addEventListener('click',   () => toggleCardSelection(idx));
         el.addEventListener('keydown', (e) => {
           if (e.key === ' ' || e.key === 'Enter') {
@@ -1413,11 +1230,6 @@
       updateSelectionHint();
     }
 
-    /**
-     * Enable / disable and update all control-panel buttons
-     * based on current game phase, whose turn it is, and
-     * local selection state.
-     */
     function renderControls() {
       const myTurn    = isMyTurn() && state.phase === 'playing';
       const hasSel    = state.selectedCardIndices.size > 0;
@@ -1429,24 +1241,18 @@
       dom.btnSkip.disabled  = !myTurn;
       dom.btnBluff.disabled = !myTurn || state.pileCount === 0;
 
-      // Clear stale error when controls update
       if (canPlay) clearPlayError();
     }
 
-    /** Show or clear the inline play-action validation message */
-    function showPlayError(msg) {
-      dom.playError.textContent = msg ? `⚠ ${msg}` : '';
-    }
+    function showPlayError(msg) { dom.playError.textContent = msg ? `⚠ ${msg}` : ''; }
     function clearPlayError() { dom.playError.textContent = ''; }
 
-    /** Enable or disable ALL interactive controls at once (e.g. on disconnect) */
     function setControlsEnabled(enabled) {
       dom.btnPlay.disabled  = !enabled;
       dom.btnSkip.disabled  = !enabled;
       dom.btnBluff.disabled = !enabled;
     }
 
-    /** Update the card-selection count hint below the hand */
     function updateSelectionHint() {
       const n = state.selectedCardIndices.size;
       dom.selectionHint.textContent = n > 0
@@ -1454,21 +1260,16 @@
         : '';
     }
 
-    /** Hide the lobby overlay and reveal the game board */
     function hideLobby() {
       dom.lobbyOverlay.classList.add('hidden');
     }
 
-    /* ── 7. USER ACTIONS ─────────────────────────────────────────────────── */
-
-    /** Toggle a card in the local selection set */
     function toggleCardSelection(idx) {
       if (state.selectedCardIndices.has(idx)) {
         state.selectedCardIndices.delete(idx);
       } else {
         state.selectedCardIndices.add(idx);
       }
-      // Update the card element in place (faster than full re-render)
       const cardEl = dom.handContainer.querySelector(`[data-idx="${idx}"]`);
       if (cardEl) {
         const selected = state.selectedCardIndices.has(idx);
@@ -1480,12 +1281,10 @@
       clearPlayError();
     }
 
-    /** Submit selected cards + declared rank to the server */
     function handlePlay() {
       const selectedIndices = [...state.selectedCardIndices];
       const declaredRank    = dom.rankSelect.value;
 
-      /* ── Client-side validation ── */
       if (selectedIndices.length === 0) {
         showPlayError('Select at least one card to play.');
         return;
@@ -1500,30 +1299,18 @@
       }
 
       clearPlayError();
-
-      // Extract the actual card objects by index
       const cardsToPlay = selectedIndices.map((i) => state.myHand[i]);
 
-      /**
-       * Emit 'playCards' to the server.
-       * Expected server payload:
-       * {
-       *   cards:         Array<{ rank: string, suit: string }>,
-       *   declaredRank:  string,   // what the player claims the cards are
-       * }
-       */
       socket.emit('playCards', {
         cards:        cardsToPlay,
         declaredRank: declaredRank,
       });
 
-      // Reset local selection + dropdown immediately for responsiveness
       state.selectedCardIndices.clear();
       dom.rankSelect.value = '';
       renderControls();
     }
 
-    /** Call bluff on the last played set of cards */
     function handleCallBluff() {
       if (!isMyTurn()) {
         showPlayError('It is not your turn to call bluff.');
@@ -1534,20 +1321,15 @@
         return;
       }
       clearPlayError();
-
-      /** Emit 'callBluff' — no payload needed; server knows who acted last */
       socket.emit('callBluff');
     }
 
-    /** Skip (pass) the current turn without playing or calling bluff */
     function handleSkip() {
       if (!isMyTurn()) return;
       clearPlayError();
-      /** Emit 'skipTurn' */
       socket.emit('skipTurn');
     }
 
-    /** Attempt to join the game via the lobby form */
     function handleJoinGame() {
       const name = dom.lobbyNameInput.value.trim();
       if (!name) {
@@ -1559,20 +1341,19 @@
       dom.lobbyJoinBtn.disabled    = true;
       dom.lobbyStatus.innerHTML    = 'Connecting… <span class="dot-pulse"><span></span><span></span><span></span></span>';
 
-      // Connect the socket (this also starts the reconnection loop)
       connectSocket(name);
 
-      // After the socket connects, emit the joinGame event so the server
-      // registers us in the room. This is separate from the socket handshake
-      // so the server can store the player in its game-state map.
       socket.once('connect', () => {
         socket.emit('joinGame', { name });
       });
     }
 
-    /* ── 8. UTILITIES ─────────────────────────────────────────────────────── */
+    function handleStartGame() {
+      socket.emit('startGame');
+      dom.lobbyStartBtn.disabled = true;
+      dom.lobbyStartBtn.textContent = 'Starting...';
+    }
 
-    /** Add an entry to the scrollable game log */
     function addLog(message, type = 'action') {
       const entry = document.createElement('div');
       entry.className = `log-entry log-${type}`;
@@ -1580,11 +1361,9 @@
       const ts  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
       entry.innerHTML = `<span class="log-timestamp">${ts}</span>${escapeHtml(message)}`;
       dom.gameLog.appendChild(entry);
-      // Auto-scroll to bottom
       dom.gameLog.scrollTop = dom.gameLog.scrollHeight;
     }
 
-    /** Show a transient toast notification */
     let toastTimer = null;
     function showToast(message, variant = '') {
       clearTimeout(toastTimer);
@@ -1595,62 +1374,37 @@
       }, TOAST_DURATION_MS);
     }
 
-    /** Return the player object for a given ID, or null */
-    function getPlayerById(id) {
-      return state.players.find((p) => p.id === id) ?? null;
-    }
-
-    /** Whether it is the local player's turn */
-    function isMyTurn() {
-      return state.currentTurnId === state.myId;
-    }
-
-    /**
-     * Format a raw rank string for display.
-     * 'A' → 'Ace', 'J' → 'Jack', etc.
-     */
+    function getPlayerById(id) { return state.players.find((p) => p.id === id) ?? null; }
+    function isMyTurn() { return state.currentTurnId === state.myId; }
     function formatRank(rank) {
       const names = { A: 'Ace', J: 'Jack', Q: 'Queen', K: 'King' };
       return names[rank] ?? rank;
     }
-
-    /** Escape HTML special characters to prevent XSS in server-supplied strings */
     function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g,  '&amp;')
-        .replace(/</g,  '&lt;')
-        .replace(/>/g,  '&gt;')
-        .replace(/"/g,  '&quot;')
-        .replace(/'/g,  '&#x27;');
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
     }
 
-    /* ── 9. INIT — wire up static DOM event listeners ─────────────────────── */
-
     (function init() {
-      /* Lobby form */
       dom.lobbyJoinBtn.addEventListener('click', handleJoinGame);
       dom.lobbyNameInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleJoinGame();
       });
+      dom.lobbyStartBtn.addEventListener('click', handleStartGame); // New Event Listener
 
-      /* Control panel buttons */
       dom.btnPlay.addEventListener('click', handlePlay);
       dom.btnSkip.addEventListener('click', handleSkip);
       dom.btnBluff.addEventListener('click', handleCallBluff);
 
-      /* Rank dropdown — re-evaluate play button on change */
       dom.rankSelect.addEventListener('change', () => {
         clearPlayError();
         renderControls();
       });
 
-      /* Log clear */
       dom.logClear.addEventListener('click', () => {
         dom.gameLog.innerHTML = '';
         addLog('Log cleared.', 'system');
       });
 
-      /* Initial log message */
       addLog('Welcome to Bluff. Enter your name and join the game!', 'system');
     })();
 
