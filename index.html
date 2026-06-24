@@ -200,10 +200,10 @@
     }
     #felt::after { content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.18); }
 
-    /* Turn banner */
-    #turn-banner { position: absolute; top: calc(var(--safe-top) + 8px); left: 50%; transform: translateX(-50%); z-index: 6; white-space: nowrap;
+    /* Turn banner — anchored to the BOTTOM of the table so it never covers a seat */
+    #turn-banner { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 6; white-space: nowrap;
       padding: 8px 20px; border-radius: 22px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.02em;
-      background: rgba(0,0,0,0.45); border: 2px solid var(--border-soft); color: var(--text-soft); backdrop-filter: blur(5px);
+      background: rgba(0,0,0,0.55); border: 2px solid var(--border-soft); color: var(--text-soft); backdrop-filter: blur(5px);
       transition: background var(--t-mid), color var(--t-mid), border-color var(--t-mid); }
     #turn-banner.your-turn { background: linear-gradient(135deg, var(--candy-yellow), var(--candy-orange)); border-color: #fff; color: var(--text-inverse); animation: bannerGlow 1.4s infinite ease-in-out; }
 
