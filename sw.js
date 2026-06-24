@@ -11,7 +11,7 @@
 /* ── Cache identifiers ─────────────────────────────────────────────────────
    Bump CACHE_NAME whenever the app shell changes so stale caches are evicted.
    ──────────────────────────────────────────────────────────────────────── */
-const CACHE_NAME    = 'bluff-v1';
+const CACHE_NAME    = 'bluff-v2';
 const SHELL_ASSETS  = [
   'index.html',
   'manifest.json',
